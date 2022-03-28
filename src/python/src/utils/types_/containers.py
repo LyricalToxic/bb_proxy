@@ -1,8 +1,8 @@
-import base64
 import logging
 from dataclasses import dataclass, field
 from typing import Optional, Literal
 
+from utils.project.proxy_authorization import encode_proxy_auth_header
 from utils.types_.constans import MiB
 
 
@@ -25,8 +25,7 @@ class ProxyCredential(object):
 
     @property
     def basic_token(self):
-        cred = base64.b64encode(f"{self.username}:{self.password}".encode("utf-8"))
-        return f"Basic {cred}"
+        return encode_proxy_auth_header(self.username, self.password)
 
 
 @dataclass()
