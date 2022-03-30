@@ -8,6 +8,7 @@ class ProxyCredential(Base):
     id = Column("id", INTEGER, index=False, nullable=False, primary_key=True, autoincrement=True)
 
     type = Column("type", VARCHAR(255), index=True, nullable=False)
+    protocol = Column("protocol", VARCHAR(255), index=False, nullable=False)
     host = Column("host", VARCHAR(255), index=False, nullable=False)
     port = Column("port", INTEGER, index=False, nullable=False)
     username = Column("username", VARCHAR(255), index=False, nullable=True)

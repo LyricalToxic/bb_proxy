@@ -1,12 +1,12 @@
 from threading import Lock
 
 from utils.project.password_hashing import decrypt_password
-from utils.types_.constans import KiB, BYTE
-from utils.types_.containers import ProxyCredential, ProxySpec, ProxyLimits, ProxyUsage
+from utils.project.proxy_spec_factory import proxy_spec_factory
+
+from utils.types_.containers import ProxyCredential, ProxyLimits, ProxyUsage
 
 
 class _ComradeSpecs(dict):
-    # TODO: implement 'get username and password by host and port' for the `DynamicUpstreamAddon.http_connect_upstream`
     pass
 
 
@@ -36,15 +36,15 @@ class BBStorage(object):
             proxy_username, proxy_password = comrade.proxy_username, decrypt_password(comrade.proxy_password)
             proxy_cred = ProxyCredential(credential=(proxy_username, proxy_password))
             proxy_limit = ProxyLimits(bandwidth=comrade.bandwidth_limit_b, threads=comrade.concurrency_threads_limit)
-            # TODO: add proxy protocol option/field to database
-            # FIXME: delete protocol const
-            proxy_spec = ProxySpec(
+            proxy_spec = proxy_spec_factory(
+                proxy_type=comrade.type,
                 host=comrade.host,
                 port=comrade.port,
                 credential=proxy_cred,
                 limits=proxy_limit,
-                protocol="http",
-                record_id=comrade.id
+                protocol=comrade.protocol,
+                record_id=comrade.id,
+                rotate_strategy=comrade.rotate_strategy
             )
             self._comrade_specs.update({hashed_comrade: proxy_spec})
             return hashed_comrade

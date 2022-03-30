@@ -76,14 +76,16 @@ class BigBrother(CommunicativeBigBrother):
             ProxyComrade.bandwidth_limit_b,
             ProxyComrade.concurrency_threads_limit,
             ProxyComrade.used_bandwidth_b,
+            ProxyComrade.rotate_strategy,
             Comrade.username,
             Comrade.password,
+            ProxyCredential.type,
+            ProxyCredential.protocol,
             ProxyCredential.host,
             ProxyCredential.port,
             ProxyCredential.username.label("proxy_username"),
             ProxyCredential.password.label("proxy_password"),
             ProxyCredential.options,
-            ProxyCredential.type,
         ]).where(
             and_(
                 Comrade.username == username,

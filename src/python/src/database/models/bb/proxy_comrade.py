@@ -14,6 +14,7 @@ class ProxyComrade(Base):
                                        server_default=text("1"))
 
     used_bandwidth_b = Column("used_bandwidth_b", INTEGER, index=False, nullable=False, server_default=text("0"))
+    rotate_strategy = Column("rotate_strategy", INTEGER, index=False, nullable=False, server_default=text("0"))
 
     status = Column("status", INTEGER, index=True, nullable=False, server_default=text("0"))
     created_at = Column(

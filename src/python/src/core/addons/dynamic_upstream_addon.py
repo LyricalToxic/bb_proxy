@@ -52,6 +52,8 @@ class DynamicUpstreamAddon:
             return
 
         proxy_spec = self._get_comrade_proxy_spec(identifier)
+        proxy_spec.rotate()
+
         is_proxy_change = proxy_spec.address != flow.server_conn.via.address
         server_connection_already_open = flow.server_conn.timestamp_start is not None
         if is_proxy_change and server_connection_already_open:
