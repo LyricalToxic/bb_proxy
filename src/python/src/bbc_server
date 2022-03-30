@@ -1,4 +1,0 @@
-#!/bin/sh
-python bbc_server.py "$@"
-ret=$?
-exit $ret

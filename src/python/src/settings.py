@@ -26,4 +26,4 @@ DB_USERNAME = os.getenv("DB_USERNAME", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_DATABASE = os.getenv("DB_DATABASE", "db_name")
 
-SALT_KEY = os.getenv("SALT_KEY", "dh0xA0bZ3xpRJ1kDT_F1pXxgUT4Piwz_cyfqckOoKHY=").encode("utf-8")
+SALT_KEY = os.getenv("SALT_KEY", "7244fe69f96714e4c0269492bb0e9d1e51740f77f27d03c9cd23c7e37ef05c10")

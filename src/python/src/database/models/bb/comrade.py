@@ -26,5 +26,5 @@ class Comrade(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("username", "password"),
+        UniqueConstraint("username"),
     )

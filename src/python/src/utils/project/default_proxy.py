@@ -38,3 +38,16 @@ def load_default_proxy(options):
 
     proxy_spec = _load_from_options(options) or _load_from_env() or _load_from_db()
     return proxy_spec
+
+
+def load_proxy_stub():
+    return ProxySpec(
+        host="localhost",
+        port=1234,
+        protocol="https",
+        credential=ProxyCredential(None),
+        limits=ProxyLimits(
+            bandwidth=None,
+            threads=-1
+        )
+    )

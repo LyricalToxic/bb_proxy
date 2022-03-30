@@ -29,5 +29,5 @@ class ProxyCredential(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("host", "port", "username", "password"),
+        UniqueConstraint("host", "port", "username"),
     )

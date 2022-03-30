@@ -1,7 +1,7 @@
 import asyncio
 
 
-from core.big_brother import BigBrother
+from core.bb.big_brother import BigBrother
 
 
 async def main(options):

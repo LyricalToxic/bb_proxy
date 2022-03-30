@@ -31,7 +31,7 @@ def upgrade():
                     sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'),
                               nullable=False),
                     sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('host', 'port', 'username', 'password')
+                    sa.UniqueConstraint('host', 'port', 'username')
                     )
     op.create_index(op.f('ix_proxy_credentials_type'), 'proxy_credentials', ['type'], unique=False)
     op.create_index(op.f('ix_proxy_credentials_updated_at'), 'proxy_credentials', ['updated_at'], unique=False)

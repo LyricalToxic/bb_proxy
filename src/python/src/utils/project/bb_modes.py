@@ -1,0 +1,4 @@
+class BBModes(object):
+    FORCE_ROTATE = 1
+    ON_BAD_HTTP_STATUS_ROTATE = 2
+    DEFAULT = FORCE_ROTATE

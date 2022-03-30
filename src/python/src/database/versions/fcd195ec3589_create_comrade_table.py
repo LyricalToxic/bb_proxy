@@ -28,7 +28,7 @@ def upgrade():
                     sa.Column('updated_at', sa.TIMESTAMP(), server_default=sa.text('(CURRENT_TIMESTAMP)'),
                               nullable=False),
                     sa.PrimaryKeyConstraint('id'),
-                    sa.UniqueConstraint('username', 'password')
+                    sa.UniqueConstraint('username')
                     )
     op.create_index(op.f('ix_comrades_updated_at'), 'comrades', ['updated_at'], unique=False)
     op.execute(
