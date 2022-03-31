@@ -60,7 +60,9 @@ class ProxyUsage(object):
             self.previous_traffic = self.total_traffic
             self.upload_traffic = 0
             self.download_traffic = 0
+            self.total_requests = 0
             self._from_timestamp = datetime.datetime.now()
+
 
 @dataclass(init=False)
 class ProxyCredential(object):

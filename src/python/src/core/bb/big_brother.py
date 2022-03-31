@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import traceback
 
 from core.bb.communicative_big_brother import CommunicativeBigBrother
 from database.connection import async_engine
@@ -41,14 +42,15 @@ class BigBrother(CommunicativeBigBrother):
         identifier = self._get_comrade_identifier_from_local(username)
         if not identifier:
             identifier = await self._get_comrade_identifier_from_database(username)
-            self.schedule_logging_statistic(identifier)
+            if identifier:
+                self.schedule_logging_statistic(identifier)
         if not identifier:
             raise ComradeIdentificationError(username=username)
         else:
             return identifier
 
     def schedule_logging_statistic(self, identifier):
-        task = asyncio.run_coroutine_threadsafe(self.log_statistic(identifier), self.mimtproxy_event_loop)
+        task = asyncio.run_coroutine_threadsafe(self.log_statistic(identifier), self._mimtproxy_event_loop)
         self._local_storage.inject_logging_task(task, identifier)
         return task
 
@@ -58,12 +60,14 @@ class BigBrother(CommunicativeBigBrother):
             return None
         else:
             identifier = self._local_storage.append_comrade(comrade)
-            await self._update_proxy_comrade(comrade)
+            await self._update_proxy_comrade(comrade.id, {
+                ProxyComrade.status: ProxyStates.RESERVED,
+            })
             return identifier
 
-    async def _update_proxy_comrade(self, comrade):
+    async def _update_proxy_comrade(self, comrade_id, values):
         async with async_engine.begin() as connection:
-            update_stmt = self._build_update_proxy_comrade(comrade)
+            update_stmt = self._build_update_proxy_comrade(comrade_id, values)
             await connection.execute(update_stmt)
 
     async def _retrieve_comrade(self, username):
@@ -101,13 +105,8 @@ class BigBrother(CommunicativeBigBrother):
         ).select_from(joined_stmt)
         return select_stmt
 
-    def _build_update_proxy_comrade(self, result):
-        update_stmt = update(ProxyComrade).values({
-            # ProxyComrade.status: ProxyState.RESERVED,
-            ProxyComrade.status: ProxyStates.AVAILABLE,  # FIXME: ONLY FOR TESTS
-        }).where(
-            ProxyComrade.id == result.id
-        )
+    def _build_update_proxy_comrade(self, id_, values):
+        update_stmt = update(ProxyComrade).values(values).where(ProxyComrade.id == id_)
         return update_stmt
 
     def _get_comrade_identifier_from_local(self, username):
@@ -142,25 +141,22 @@ class BigBrother(CommunicativeBigBrother):
 
     # -------------------------------
     async def log_statistic(self, identifier, force_trigger=None):
-        try:
-            stats = self._local_storage.get_comrade_usage(identifier)
-            proxy_spec = self._local_storage.get_comrade_proxy_spec(identifier)
-            if force_trigger and force_trigger.name in _StateLoggingTriggersBySignal:
-                await asyncio.sleep(force_trigger.delay.seconds)
+        stats = self._local_storage.get_comrade_usage(identifier)
+        proxy_spec = self._local_storage.get_comrade_proxy_spec(identifier)
+        if force_trigger and force_trigger.name in _StateLoggingTriggersBySignal.keys:
+            await asyncio.sleep(force_trigger.delay.seconds)
+            async with self.engine.begin() as connection:
+                insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, force_trigger)
+                await connection.execute(insert_stmt)
+            self._local_storage._comrade_usage[identifier].reset_traffic()
+        else:
+            trigger = stats._logging_trigger
+            while True:
+                await asyncio.sleep(trigger.delay.seconds)
                 async with self.engine.begin() as connection:
-                    insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, force_trigger)
+                    insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, trigger)
                     await connection.execute(insert_stmt)
                 self._local_storage._comrade_usage[identifier].reset_traffic()
-            else:
-                trigger = stats._logging_trigger
-                while True:
-                    await asyncio.sleep(trigger.delay.seconds)
-                    async with self.engine.begin() as connection:
-                        insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, trigger)
-                        await connection.execute(insert_stmt)
-                    self._local_storage._comrade_usage[identifier].reset_traffic()
-        except Exception as e:
-            self.logger.error(e)
 
     def _build_statistic_insert_statement(self, stats, proxy_spec, trigger):
         insert_stmt = insert(Statistic).values({
@@ -171,6 +167,23 @@ class BigBrother(CommunicativeBigBrother):
             Statistic.number_of_requests: stats.total_requests,
             Statistic.upload_traffic_bytes: stats.upload_traffic,
             Statistic.download_traffic_bytes: stats.download_traffic,
-            Statistic.total_traffic_bytes: stats.total_traffic,
+            Statistic.total_traffic_bytes: stats.upload_traffic + stats.download_traffic,
         }).prefix_with("OR IGNORE")
         return insert_stmt
+
+    async def before_shutdown(self):
+        self.logger.info("BEFORE SHUTDOWN")
+        for identifier in self._local_storage._comrade_identifiers.values():
+            await self.log_statistic(identifier, _StateLoggingTriggersBySignal.BEFORE_SHUTDOWN)
+            await self._release_proxy_comrade(identifier)
+        self._master.shutdown()
+
+    async def _release_proxy_comrade(self, identifier):
+        stats = self._local_storage.get_comrade_usage(identifier)
+        proxy_spec = self._local_storage.get_comrade_proxy_spec(identifier)
+        status = ProxyStates.AVAILABLE if stats.total_traffic < proxy_spec.limits.bandwidth \
+            else ProxyStates.BANDWIDTH_LIMIT_UTILISED
+        await self._update_proxy_comrade(proxy_spec.record_id, {
+            ProxyComrade.status: status,
+            ProxyComrade.used_bandwidth_b: stats.total_traffic
+        })

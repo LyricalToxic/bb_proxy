@@ -1,4 +1,7 @@
 import asyncio
+import os
+import signal
+from concurrent.futures import ThreadPoolExecutor
 from logging import getLogger
 from threading import Thread, Event
 from core.bb.bb_storage import BBStorage
@@ -17,21 +20,23 @@ class BaseBigBrother(object):
         super().__init__()
         self.logger = getLogger(BaseBigBrother.__name__)
         self._local_storage = BBStorage()
-        self.mimtproxy_event_loop = None
+        self._master = None
+        self._mimtproxy_event_loop = asyncio.get_event_loop()
 
-    async def run(self, options):
-        stop_event = Event()
-        mp_thread = Thread(target=self.setup_mitmproxy, args=(options, stop_event), name="@MitmProxy")
-        mp_thread.start()
-        mp_thread.join()
+    def run(self, options):
+        signal.signal(signal.SIGTERM, self.shutdown)
+        signal.signal(signal.SIGINT, self.shutdown)
+        self.setup_mitmproxy(options)
 
     def shutdown(self, signal, frame):
-        self.logger.info("%s, %s", signal, frame)
+        asyncio.run_coroutine_threadsafe(self.before_shutdown(), self._mimtproxy_event_loop)
+        # self.logger.info("%s, %s", signal, frame)
 
-    def setup_mitmproxy(self, options, stop_event):
-        loop = asyncio.new_event_loop()
-        self.mimtproxy_event_loop = loop
-        asyncio.set_event_loop(loop)
+    async def before_shutdown(self):
+        await asyncio.sleep(0)
+
+    def setup_mitmproxy(self, options):
+        asyncio.set_event_loop(self._mimtproxy_event_loop)
         proxy_spec = load_proxy_stub()
 
         if not proxy_spec:
@@ -47,13 +52,10 @@ class BaseBigBrother(object):
                 ssl_insecure=True,
                 upstream_cert=False,
             )
-            master = DumpMaster(dump_master_opts)
-            master.addons.add(DynamicUpstreamAddon(self))
-            master.options.update(connection_strategy="lazy")
-            try:
-                master.run()
-            except KeyboardInterrupt:
-                master.shutdown()
+            self._master = DumpMaster(dump_master_opts)
+            self._master.addons.add(DynamicUpstreamAddon(self))
+            self._master.options.update(connection_strategy="lazy")
+            self._master.run()
 
     def get_comrade_proxy_spec(self, identifier):
         pass

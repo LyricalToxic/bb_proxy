@@ -38,7 +38,7 @@ class IncorrectComradeAuthHeader(BaseMitmException):
 class ComradeIdentificationError(BaseMitmException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
-            self.message = f"Cannot identify comrade. No found comrade with username {username}"
+            message = f"Cannot identify comrade. No found comrade with username {username}"
         self.code = 462
         self.message = message
         super().__init__(message, *args, **kwargs)

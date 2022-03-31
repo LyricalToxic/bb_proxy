@@ -1,6 +1,9 @@
+import asyncio
+import os
 import signal
 import sys
 from argparse import ArgumentParser
+from threading import Thread
 
 from cmdline.start_bb import _run
 from multiprocessing import Process
@@ -24,15 +27,11 @@ def _parse_args(args):
 def main():
     args = sys.argv[1:]
     parsed_args = _parse_args(args)
-    signal.signal(signal.SIGTERM, a)
-    signal.signal(signal.SIGINT, a)
-    try:
-        thread = Process(target=_run, args=(parsed_args,))
-        thread.start()
-        thread.join()
-        # _run(parsed_args)
-    except (KeyboardInterrupt, SystemExit) as e:
-        print(e)
 
-def a(c,b):
-    print(c, b)
+    if os.name == "nt":
+        async def wakeup():
+            while True:
+                await asyncio.sleep(0.2)
+
+        asyncio.ensure_future(wakeup())
+    _run(parsed_args)

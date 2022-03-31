@@ -9,7 +9,19 @@ class LogTrigger(object):
     name: str
 
 
-class _StateLoggingTriggersByTime(object):
+class CustomEnum(object):
+
+    def __contains__(self, item):
+        return item.name in self.keys
+
+    @classmethod
+    @property
+    def keys(cls):
+        return [attr for attr in dir(cls) if
+                attr.isupper() and (not attr.endswith("__") and not attr.startswith("__"))]
+
+
+class _StateLoggingTriggersByTime(CustomEnum):
     TEST = LogTrigger(-1, timedelta(seconds=10), "TEST")
     EVERY_MINUTE = LogTrigger(0, timedelta(minutes=1), "EVERY_MINUTE")
     EVERY_FIVE_MINUTES = LogTrigger(1, timedelta(minutes=5), "EVERY_FIVE_MINUTES")
@@ -23,7 +35,7 @@ class _StateLoggingTriggersByTime(object):
     ANNUALLY = LogTrigger(9, timedelta(weeks=52), "ANNUALLY")
 
 
-class _StateLoggingTriggersBySignal(object):
+class _StateLoggingTriggersBySignal(CustomEnum):
     BEFORE_SHUTDOWN = LogTrigger(10, timedelta(seconds=0), "BEFORE_SHUTDOWN")
     BANDWIDTH_LIMIT_USAGE_EXCEED = LogTrigger(11, timedelta(seconds=0), "BANDWIDTH_LIMIT_USAGE_EXCEED")
 

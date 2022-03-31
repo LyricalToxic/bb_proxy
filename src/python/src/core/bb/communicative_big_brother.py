@@ -10,11 +10,11 @@ class CommunicativeBigBrother(BaseBigBrother):
         super().__init__()
         self._bbserver = None
 
-    async def run(self, options):
+    def run(self, options):
         # bb_server_thread = Thread(target=self.setup_bbserver, name="@BBServer")
         # bb_server_thread.start()
         # bb_server_thread.join()
-        await super().run(options)
+        super().run(options)
 
 
     def setup_bbserver(self):
