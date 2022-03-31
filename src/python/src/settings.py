@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 
 from utils.project.configure_logging import configure_logging
+from utils.project.enums import StateLoggingTriggers
 from utils.types_.constans import GiB, BYTE, MAX_BANDWIDTH, MAX_THREADS
 
 load_dotenv()
@@ -27,3 +28,7 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_DATABASE = os.getenv("DB_DATABASE", "db_name")
 
 SALT_KEY = os.getenv("SALT_KEY", "7244fe69f96714e4c0269492bb0e9d1e51740f77f27d03c9cd23c7e37ef05c10")
+
+STATISTIC_LOGGING_TIME_TRIGGER = getattr(
+    StateLoggingTriggers, os.getenv("STATISTIC_LOGGING_TIME_TRIGGER", "EVERY_HOUR")
+)

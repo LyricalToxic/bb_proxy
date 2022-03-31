@@ -6,17 +6,31 @@ from utils.project.proxy_spec_factory import proxy_spec_factory
 from utils.types_.containers import ProxyCredential, ProxyLimits, ProxyUsage
 
 
-class _ComradeSpecs(dict):
-    pass
+class _ComradeIdentifiers(dict):
+    """
+        Container for comrade credentials. Represents following format {(comrade_username, comrade_password):comrade_id}
+    """
+
+
+class _ProxySpecs(dict):
+    """
+        Container for {ProxySpec}. Represents following format {comrade_id:ProxySpec}
+    """
+
+
+class _ComradeUsage(dict):
+    """
+        Container for comrade proxy usage. Represents following format {comrade_id:ProxyUsage}
+    """
 
 
 class BBStorage(object):
 
     def __init__(self):
         self._local_lock = Lock()
-        self._comrade_identifiers = dict()
-        self._comrade_specs = _ComradeSpecs()
-        self._comrade_usage = dict()
+        self._comrade_identifiers = _ComradeIdentifiers()
+        self._proxy_specs = _ProxySpecs()
+        self._comrade_usage = _ComradeUsage()
 
     def indentify_comrade(self, username):
         with self._local_lock:
@@ -46,12 +60,12 @@ class BBStorage(object):
                 record_id=comrade.id,
                 rotate_strategy=comrade.rotate_strategy
             )
-            self._comrade_specs.update({hashed_comrade: proxy_spec})
+            self._proxy_specs.update({hashed_comrade: proxy_spec})
             return hashed_comrade
 
     def get_comrade_proxy_spec(self, identifier):
         with self._local_lock:
-            return self._comrade_specs[identifier]
+            return self._proxy_specs[identifier]
 
     def get_comrade_by_identifier(self, identifier):
         with self._local_lock:
@@ -62,3 +76,8 @@ class BBStorage(object):
     def get_comrade_usage(self, identifier):
         with self._local_lock:
             return self._comrade_usage[identifier]
+
+    def inject_logging_task(self, task, identifier):
+        with self._local_lock:
+            comrade_usage = self._comrade_usage[identifier]
+            comrade_usage._logging_task = task

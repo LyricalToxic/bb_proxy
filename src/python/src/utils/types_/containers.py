@@ -1,11 +1,14 @@
+import datetime
 import logging
 import random
+from asyncio import Task
 from dataclasses import dataclass, field
 from threading import RLock
 from typing import Optional, Literal, Union
 
+from settings import STATISTIC_LOGGING_TIME_TRIGGER
 from utils.project.proxy_authorization import encode_proxy_auth_header
-from utils.project.rotate_strategy import RotateStrategy
+from utils.project.enums.rotate_strategies import RotateStrategies
 from utils.types_.constans import MiB, BYTE
 
 
@@ -21,6 +24,10 @@ class ProxyUsage(object):
     upload_traffic: BYTE = field(default=0)
     download_traffic: BYTE = field(default=0)
     threads: int = field(default=0)
+    total_requests: int = field(default=0)
+    _from_timestamp: datetime.datetime = field(default_factory=datetime.datetime.now)
+    _logging_trigger: int = STATISTIC_LOGGING_TIME_TRIGGER
+    _logging_task: Optional[Task] = field(default=None)
     __lock: RLock = RLock()
 
     def reserve_thread(self):
@@ -39,11 +46,21 @@ class ProxyUsage(object):
         with self.__lock:
             self.download_traffic += value
 
+    def inc_total_requests(self):
+        with self.__lock:
+            self.total_requests += 1
+
     @property
     def total_traffic(self):
         with self.__lock:
             return self.previous_traffic + self.upload_traffic + self.download_traffic
 
+    def reset_traffic(self):
+        with self.__lock:
+            self.previous_traffic = self.total_traffic
+            self.upload_traffic = 0
+            self.download_traffic = 0
+            self._from_timestamp = datetime.datetime.now()
 
 @dataclass(init=False)
 class ProxyCredential(object):
@@ -74,7 +91,7 @@ class ProxySpec(object):
     credential: ProxyCredential = field(default_factory=ProxyCredential)
     limits: ProxyLimits = field(default_factory=ProxyLimits)
     record_id: Optional[int] = field(default=None)
-    rotate_strategy: int = field(default=RotateStrategy.DEFAULT)
+    rotate_strategy: int = field(default=RotateStrategies.DEFAULT)
     __lock: RLock = RLock()
 
     @property
@@ -95,7 +112,7 @@ class ProxySpec(object):
     @property
     def address(self):
         with self.__lock:
-            return (self.host, self.port)
+            return self.host, self.port
 
     def rotate(self):
         with self.__lock:
@@ -109,10 +126,10 @@ class GeoSerf(ProxySpec):
 
     def rotate(self):
         with self.__lock:
-            if self.rotate_strategy == RotateStrategy.FORCE_ROTATE:
+            if self.rotate_strategy == RotateStrategies.FORCE_ROTATE:
                 username = self.credential.username.split("-")
                 self.credential.username = f"{username[0]}-{random.randint(1, 10 ** 9)}"
-            if self.rotate_strategy == RotateStrategy.NO_ROTATE:
+            if self.rotate_strategy == RotateStrategies.NO_ROTATE:
                 pass
 
 

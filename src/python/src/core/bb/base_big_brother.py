@@ -1,7 +1,7 @@
 import asyncio
 from logging import getLogger
 from threading import Thread, Event
-from core.bb_storage import BBStorage
+from core.bb.bb_storage import BBStorage
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT
 from utils.project.default_proxy import load_proxy_stub
@@ -17,6 +17,7 @@ class BaseBigBrother(object):
         super().__init__()
         self.logger = getLogger(BaseBigBrother.__name__)
         self._local_storage = BBStorage()
+        self.mimtproxy_event_loop = None
 
     async def run(self, options):
         stop_event = Event()
@@ -29,6 +30,7 @@ class BaseBigBrother(object):
 
     def setup_mitmproxy(self, options, stop_event):
         loop = asyncio.new_event_loop()
+        self.mimtproxy_event_loop = loop
         asyncio.set_event_loop(loop)
         proxy_spec = load_proxy_stub()
 

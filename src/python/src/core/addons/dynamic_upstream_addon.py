@@ -37,9 +37,10 @@ class DynamicUpstreamAddon:
         self.logger.info("Received request %s", flow.response)
         if hasattr(flow.client_conn, "_comrade_identifier"):
             comrade_identifier = flow.client_conn._comrade_identifier
-            self.owner.comrade_usage[comrade_identifier].release_thread()
+            self.owner.comrade_usage[comrade_identifier].inc_total_requests()
             self.owner.comrade_usage[comrade_identifier].inc_download_traffic(calculate_http_obj_size(flow.response))
             self.owner.comrade_usage[comrade_identifier].inc_upload_traffic(calculate_http_obj_size(flow.request))
+            self.owner.comrade_usage[comrade_identifier].release_thread()
 
     # --------------------------
     async def _set_actual_upstream(self, flow: HTTPFlow) -> None:
