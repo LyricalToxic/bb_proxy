@@ -1,4 +1,4 @@
-from threading import Lock
+from threading import RLock
 
 from utils.project.password_hashing import decrypt_password
 from utils.project.proxy_spec_factory import proxy_spec_factory
@@ -27,7 +27,7 @@ class _ComradeUsage(dict):
 class BBStorage(object):
 
     def __init__(self):
-        self._local_lock = Lock()
+        self._local_lock = RLock()
         self._comrade_identifiers = _ComradeIdentifiers()
         self._proxy_specs = _ProxySpecs()
         self._comrade_usage = _ComradeUsage()
@@ -63,19 +63,52 @@ class BBStorage(object):
             self._proxy_specs.update({hashed_comrade: proxy_spec})
             return hashed_comrade
 
+    def remove_comrade_completely(self, identifier):
+        with self._local_lock:
+            self.remove_comrade_usage(identifier)
+            self.remove_comrade_proxy_spec(identifier)
+            self.remove_comrade(identifier)
+
     def get_comrade_proxy_spec(self, identifier):
         with self._local_lock:
             return self._proxy_specs[identifier]
 
-    def get_comrade_by_identifier(self, identifier):
+    def remove_comrade_proxy_spec(self, identifier):
+        with self._local_lock:
+            try:
+                del self._proxy_specs[identifier]
+            except KeyError:
+                pass
+
+    def get_comrade(self, identifier):
         with self._local_lock:
             for comrade, comrade_id in self._comrade_identifiers.items():
                 if comrade_id == identifier:
                     return comrade
 
+    def remove_comrade(self, identifier):
+        with self._local_lock:
+            target_comrade = None
+            for comrade, comrade_id in self._comrade_identifiers.items():
+                if comrade_id == identifier:
+                    target_comrade = comrade
+                    break
+            if target_comrade:
+                try:
+                    del self._comrade_identifiers[comrade]
+                except KeyError:
+                    pass
+
     def get_comrade_usage(self, identifier):
         with self._local_lock:
             return self._comrade_usage[identifier]
+
+    def remove_comrade_usage(self, identifier):
+        with self._local_lock:
+            try:
+                del self._comrade_usage[identifier]
+            except KeyError:
+                pass
 
     def inject_logging_task(self, task, identifier):
         with self._local_lock:

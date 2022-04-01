@@ -10,7 +10,7 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from utils.project.database_connetion_string import get_database_connection_string
+from utils.project.database_connection import load_database_connection_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,7 +32,9 @@ target_metadata = Comrade.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option("sqlalchemy.url", get_database_connection_string())
+default_sqlalchemy_url = config.get_main_option("sqlalchemy.url")
+if default_sqlalchemy_url.startswith("driver"):
+    config.set_main_option("sqlalchemy.url", load_database_connection_url())
 
 
 def run_migrations_offline():
@@ -55,8 +57,10 @@ def run_migrations_offline():
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata,    render_as_batch=True)
-
+    try:
+        context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
+    except Exception as e:
+        a=1
     with context.begin_transaction():
         context.run_migrations()
 
@@ -83,4 +87,8 @@ async def run_migrations_online():
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
+    event_loop = asyncio.get_event_loop()
+    if event_loop.is_running():
+        asyncio.ensure_future(run_migrations_online())
+    else:
+        asyncio.run(run_migrations_online())

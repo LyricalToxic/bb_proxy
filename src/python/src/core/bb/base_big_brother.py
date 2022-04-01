@@ -1,10 +1,7 @@
 import asyncio
-import os
 import signal
-from concurrent.futures import ThreadPoolExecutor
 from logging import getLogger
-from threading import Thread, Event
-from core.bb.bb_storage import BBStorage
+from core.bb.storage.bb_storage import BBStorage
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT
 from utils.project.default_proxy import load_proxy_stub
@@ -26,7 +23,11 @@ class BaseBigBrother(object):
     def run(self, options):
         signal.signal(signal.SIGTERM, self.shutdown)
         signal.signal(signal.SIGINT, self.shutdown)
+        asyncio.run_coroutine_threadsafe(self.before_setup_mitmproxy(), self._mimtproxy_event_loop)
         self.setup_mitmproxy(options)
+
+    async def before_setup_mitmproxy(self):
+        pass
 
     def shutdown(self, signal, frame):
         asyncio.run_coroutine_threadsafe(self.before_shutdown(), self._mimtproxy_event_loop)

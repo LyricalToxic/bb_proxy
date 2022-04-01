@@ -46,7 +46,7 @@ class DynamicUpstreamAddon:
     async def _set_actual_upstream(self, flow: HTTPFlow) -> None:
         try:
             identifier = await self._authenticate_comrade(flow.request)
-            self._authorize_comrade(identifier, flow.request)
+            await self._authorize_comrade(identifier, flow.request)
         except BaseMitmException as e:
             self.logger.warning(e)
             flow.response = e.reply_response()
@@ -78,7 +78,7 @@ class DynamicUpstreamAddon:
         self.owner.comrade_usage[identifier].reserve_thread()
         return proxy_spec
 
-    def _authorize_comrade(self, identifier, request):
+    async def _authorize_comrade(self, identifier, request):
         self.logger.debug("%s. Authorization procedure start", request)
-        self.owner.authorize_comrade(identifier)
+        await self.owner.authorize_comrade(identifier)
         self.logger.debug("%s. Authorization procedure finished success", request)

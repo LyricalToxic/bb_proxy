@@ -10,6 +10,7 @@ mitmproxy = "^7.0.4"
 click = "^8.0.4"
 python-dotenv = "^0.19.2"
 SQLAlchemy = {extras = ["asyncio"], version = "^1.4.32"}
+aiomysql = "^0.0.22"
 
 [tool.poetry.dev-dependencies]
 

@@ -1,5 +1,5 @@
 from core.bb.base_big_brother import BaseBigBrother
-from core.comunication.server import BBServer
+from core.communication.server import BBServer
 from settings import SECRET_KEY
 from utils.types_.constans import ADDRESS
 
