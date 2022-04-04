@@ -60,7 +60,7 @@ def do_run_migrations(connection):
     try:
         context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
     except Exception as e:
-        a=1
+        print(e)
     with context.begin_transaction():
         context.run_migrations()
 

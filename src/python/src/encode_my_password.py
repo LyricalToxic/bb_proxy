@@ -1,6 +1,6 @@
 import sys
 
-from utils.project.password_hashing import hash_password, decrypt_password
+from utils.project.password_hashing import hash_password
 
 MIN_LENGTH = 5
 MAX_LENGTH = 20

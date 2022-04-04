@@ -35,13 +35,14 @@ class BigBrother(CommunicativeBigBrother):
     async def setup_engine(self):
         connection_string = await self._get_database_connection_string()
         async_engine = create_async_engine(connection_string)
-        try:
-            alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
-            alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
-            command.upgrade(alembic_cfg, "head")
-        except Exception as e:
-            print(e)
-            a=1
+        # FIXME: alembic command raised exception from already running event loop
+        #  See database/env.py:59-65
+        # try:
+        #     alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
+        #     alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
+        #     command.upgrade(alembic_cfg, "head")
+        # except Exception as e:
+        #     print(e)
         return async_engine
 
     async def _get_database_connection_string(self):
