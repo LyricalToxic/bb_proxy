@@ -10,12 +10,11 @@ class CommunicativeBigBrother(BaseBigBrother):
         super().__init__()
         self._bbserver = None
 
-    def run(self, options):
+    async def run(self, options):
         # bb_server_thread = Thread(target=self.setup_bbserver, name="@BBServer")
         # bb_server_thread.start()
         # bb_server_thread.join()
-        super().run(options)
-
+        await super().run(options)
 
     def setup_bbserver(self):
         self.logger.info("Listen bbserver %s", ADDRESS)

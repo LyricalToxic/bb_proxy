@@ -2,6 +2,7 @@ import asyncio
 import signal
 from logging import getLogger
 from core.bb.storage.bb_storage import BBStorage
+from core.modified_mitmproxy.modified_dump_muster import ModifiedDumpMuster
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT
 from utils.project.default_proxy import load_proxy_stub
@@ -20,14 +21,21 @@ class BaseBigBrother(object):
         self._master = None
         self._mimtproxy_event_loop = asyncio.get_event_loop()
 
-    def run(self, options):
-        signal.signal(signal.SIGTERM, self.shutdown)
-        signal.signal(signal.SIGINT, self.shutdown)
-        asyncio.run_coroutine_threadsafe(self.before_setup_mitmproxy(), self._mimtproxy_event_loop)
-        self.setup_mitmproxy(options)
+    async def run(self, options):
+        self.connect_signals()
+        await self.before_setup_mitmproxy()
+        await self.setup_mitmproxy(options)
+
+    def connect_signals(self):
+        try:
+            signal.signal(signal.SIGTERM, self.shutdown)
+            signal.signal(signal.SIGINT, self.shutdown)
+            signal.signal(signal.SIGKILL, self.shutdown)
+        except Exception as e:
+            pass
 
     async def before_setup_mitmproxy(self):
-        pass
+        self.logger.info("BEFORE SETUP MITMPROXY")
 
     def shutdown(self, signal, frame):
         asyncio.run_coroutine_threadsafe(self.before_shutdown(), self._mimtproxy_event_loop)
@@ -36,8 +44,7 @@ class BaseBigBrother(object):
     async def before_shutdown(self):
         await asyncio.sleep(0)
 
-    def setup_mitmproxy(self, options):
-        asyncio.set_event_loop(self._mimtproxy_event_loop)
+    async def setup_mitmproxy(self, options):
         proxy_spec = load_proxy_stub()
 
         if not proxy_spec:
@@ -53,7 +60,7 @@ class BaseBigBrother(object):
                 ssl_insecure=True,
                 upstream_cert=False,
             )
-            self._master = DumpMaster(dump_master_opts)
+            self._master = ModifiedDumpMuster(dump_master_opts)
             self._master.addons.add(DynamicUpstreamAddon(self))
             self._master.options.update(connection_strategy="lazy")
             self._master.run()

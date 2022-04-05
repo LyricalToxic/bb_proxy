@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -22,28 +23,30 @@ from utils.project.paths import get_root_path
 
 
 class BigBrother(CommunicativeBigBrother):
-    # TODO: add polling db for update actual state of the comrade proxy.
-    #  This needs if user change credentials or something else in table records.
 
     def __init__(self):
         super().__init__()
         self.async_engine = None
 
     async def before_setup_mitmproxy(self):
+        await super().before_setup_mitmproxy()
         self.async_engine = await self.setup_engine()
 
     async def setup_engine(self):
         connection_string = await self._get_database_connection_string()
         async_engine = create_async_engine(connection_string)
-        # FIXME: alembic command raised exception from already running event loop
-        #  See database/env.py:59-65
-        # try:
-        #     alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
-        #     alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
-        #     command.upgrade(alembic_cfg, "head")
-        # except Exception as e:
-        #     print(e)
+        await asyncio.get_event_loop().run_in_executor(
+            ThreadPoolExecutor(max_workers=1), self._apply_migrations, connection_string
+        )
         return async_engine
+
+    def _apply_migrations(self, connection_string):
+        try:
+            alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
+            alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
+            command.upgrade(alembic_cfg, "head")
+        except Exception as e:
+            print(e)
 
     async def _get_database_connection_string(self):
         db_connection_url_from_config = load_database_connection_url()

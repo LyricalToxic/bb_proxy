@@ -1,6 +1,6 @@
 from core.bb.big_brother import BigBrother
 
 
-def _run(options):
+async def _run(options):
     bbc = BigBrother()
-    bbc.run(options)
+    await bbc.run(options)

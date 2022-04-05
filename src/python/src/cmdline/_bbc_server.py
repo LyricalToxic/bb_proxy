@@ -1,12 +1,9 @@
 import asyncio
 import os
-import signal
 import sys
 from argparse import ArgumentParser
-from threading import Thread
 
 from cmdline.start_bb import _run
-from multiprocessing import Process
 
 
 def _parse_args(args):
@@ -34,4 +31,5 @@ def main():
                 await asyncio.sleep(0.2)
 
         asyncio.ensure_future(wakeup())
-    _run(parsed_args)
+    asyncio.ensure_future(_run(parsed_args))
+    asyncio.get_event_loop().run_forever()
