@@ -2,7 +2,6 @@ from threading import RLock
 
 from utils.project.password_hashing import decrypt_password
 from utils.project.proxy_spec_factory import proxy_spec_factory
-
 from utils.types_.containers import ProxyCredential, ProxyLimits, ProxyUsage
 
 

@@ -1,5 +1,6 @@
+from sqlalchemy import Column, Index, INTEGER, text, TIMESTAMP, VARCHAR, UniqueConstraint
+
 from database.models.base import Base
-from sqlalchemy import Column, Index, INTEGER, text, TIMESTAMP, VARCHAR, UniqueConstraint, DATETIME
 
 
 class Statistic(Base):
@@ -8,8 +9,10 @@ class Statistic(Base):
     id = Column("id", INTEGER, index=False, nullable=False, primary_key=True, autoincrement=True)
     proxy_comrade_limit_id = Column("proxy_comrade_limit_id", INTEGER, index=True, nullable=False)
 
-    from_timestamp = Column("from_timestamp", TIMESTAMP, index=True, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
-    to_timestamp = Column("to_timestamp", TIMESTAMP, index=True, nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    from_timestamp = Column("from_timestamp", TIMESTAMP, index=True, nullable=False,
+                            server_default=text("CURRENT_TIMESTAMP"))
+    to_timestamp = Column("to_timestamp", TIMESTAMP, index=True, nullable=False,
+                          server_default=text("CURRENT_TIMESTAMP"))
     trigger = Column("trigger", VARCHAR(255), index=False, nullable=False)
 
     number_of_requests = Column("number_of_requests", INTEGER, index=False, nullable=False, server_default=text("0"))

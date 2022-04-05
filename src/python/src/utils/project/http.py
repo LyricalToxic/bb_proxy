@@ -1,5 +1,7 @@
-from mitmproxy.http import Request, Response
 from itertools import chain
+
+from mitmproxy.http import Request, Response
+
 
 def calculate_http_obj_size(http_object):
     if isinstance(http_object, (Response, Request)):

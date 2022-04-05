@@ -1,5 +1,5 @@
-from multiprocessing.connection import Listener
 from logging import getLogger
+from multiprocessing.connection import Listener
 
 
 class BBServer(object):

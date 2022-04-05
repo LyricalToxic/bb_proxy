@@ -1,10 +1,11 @@
-from dotenv import load_dotenv
 import os
+from distutils.util import strtobool
+
+from dotenv import load_dotenv
 
 from utils.project.configure_logging import configure_logging
 from utils.project.enums import StateLoggingTriggers
 from utils.types_.constans import GiB, BYTE, MAX_BANDWIDTH, MAX_THREADS
-from distutils.util import strtobool
 
 load_dotenv()
 

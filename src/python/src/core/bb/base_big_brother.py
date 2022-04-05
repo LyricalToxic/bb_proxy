@@ -1,15 +1,16 @@
 import asyncio
 import signal
 from logging import getLogger
+
+from mitmproxy.options import Options
+
+from core.addons.dynamic_upstream_addon import DynamicUpstreamAddon
 from core.bb.storage.bb_storage import BBStorage
 from core.modified_mitmproxy.modified_dump_muster import ModifiedDumpMuster
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT
 from utils.project.default_proxy import load_proxy_stub
 from utils.types_.constans import LISTEN_HOST
-from mitmproxy.options import Options
-from mitmproxy.tools.dump import DumpMaster
-from core.addons.dynamic_upstream_addon import DynamicUpstreamAddon
 
 
 class BaseBigBrother(object):

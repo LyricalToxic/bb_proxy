@@ -7,8 +7,8 @@ from threading import RLock
 from typing import Optional, Literal, Union
 
 from settings import STATISTIC_LOGGING_TIME_TRIGGER
-from utils.project.proxy_authorization import encode_proxy_auth_header
 from utils.project.enums.rotate_strategies import RotateStrategies
+from utils.project.proxy_authorization import encode_proxy_auth_header
 from utils.types_.constans import MiB, BYTE
 
 

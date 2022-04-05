@@ -1,5 +1,6 @@
-from settings import SALT_KEY
 from cryptocode import encrypt, decrypt
+
+from settings import SALT_KEY
 
 
 def hash_password(password):

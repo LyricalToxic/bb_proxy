@@ -1,5 +1,6 @@
-from database.models.base import Base
 from sqlalchemy import Column, INTEGER, text, UniqueConstraint, TIMESTAMP, VARCHAR, TEXT
+
+from database.models.base import Base
 
 
 class ProxyCredential(Base):

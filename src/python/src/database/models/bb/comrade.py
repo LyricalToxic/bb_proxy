@@ -1,5 +1,6 @@
+from sqlalchemy import Column, INTEGER, VARCHAR, TEXT, TIMESTAMP, text, UniqueConstraint
+
 from database.models.base import Base
-from sqlalchemy import Column, INTEGER, VARCHAR, BINARY, TEXT, TIMESTAMP, text, UniqueConstraint
 
 
 class Comrade(Base):

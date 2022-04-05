@@ -1,7 +1,4 @@
 from pathlib import Path
-import inspect
-
-import cmd
 
 
 def get_root_path():

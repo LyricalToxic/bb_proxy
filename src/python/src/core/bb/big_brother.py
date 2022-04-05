@@ -2,12 +2,14 @@ import asyncio
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import insert
+from sqlalchemy import select, and_, update, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from core.bb.communicative_big_brother import CommunicativeBigBrother
 from database.models.bb import ProxyComrade, Comrade, ProxyCredential, Statistic
-from sqlalchemy import select, and_, update, text
-
 from exceptions.comrade import ComradeIdentificationError, ComradeAuthenticationError
 from exceptions.database import InvalidDatabaseCredentialError
 from exceptions.proxy import ProxyBandwidthLimitExceed, ProxyThreadLimitExceed
@@ -15,10 +17,6 @@ from settings import DB_PREPARING_ENABLED
 from utils.project.database_connection import load_database_connection_url, load_default_database_connection_url
 from utils.project.enums.proxy_states import ProxyStates
 from utils.project.enums.state_logging_triggers import StateLoggingTriggersBySignal, StateLoggingTriggers
-from sqlalchemy import insert
-from alembic.config import Config
-from alembic import command
-
 from utils.project.paths import get_root_path
 
 

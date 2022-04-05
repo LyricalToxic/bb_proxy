@@ -1,5 +1,6 @@
-from database.models.base import Base
 from sqlalchemy import Column, INTEGER, text, Index, TIMESTAMP
+
+from database.models.base import Base
 
 
 class ProxyComrade(Base):
