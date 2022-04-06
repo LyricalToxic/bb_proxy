@@ -9,7 +9,7 @@ with local.cwd("/home/app/pm2/"):
     pm2 = local["pm2"]
     pm2.popen(args=("start", "pm2.config.js"))
     print(pm2.run(args=("status",)))
-print("`setup.py` finish")
+print("`setup.py` finished")
 
 while True:
     time.sleep(60 * 60 * 24)

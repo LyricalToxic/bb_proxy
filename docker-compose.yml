@@ -10,11 +10,14 @@ services:
     volumes:
       - './src/python:/home/app/src/python'
       - './pm2:/home/app/pm2'
+      - './.env:/home/app/src/python/src/.env'
       - './docker:/home/app/docker'
       - '/home/app/src/python/src/.venv/'
     tty: true
     container_name: "big-brother-proxy"
+    env_file:
+      - .env
     ports:
-      - "8081:8081"
+      - "${LISTEN_PORT}:${LISTEN_PORT}"
     networks:
       - general

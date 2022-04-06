@@ -1,6 +1,8 @@
 import base64
 from typing import Tuple
 
+from exceptions import IncorrectComradeAuthHeader
+
 
 def encode_proxy_auth_header(username: str, password: str):
     cred = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode("utf-8")
@@ -14,4 +16,4 @@ def decode_proxy_auth_header(auth_header_value: str) -> Tuple[str, str]:
         username, password = decoded_cred.split(":")
         return username, password
     except Exception as e:
-        raise
+        raise IncorrectComradeAuthHeader()

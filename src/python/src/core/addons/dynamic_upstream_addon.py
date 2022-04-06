@@ -64,7 +64,7 @@ class DynamicUpstreamAddon:
 
     async def _authenticate_comrade(self, request: Request):
         self.logger.debug("%s. Authentication procedure start", request)
-        proxy_auth_header = request.headers.get("Proxy-Authorization1")  # FIXME: change header key
+        proxy_auth_header = request.headers.get("BBC-Proxy-Authorization")
         if not proxy_auth_header:
             raise EmptyComradeAuthHeader()
         username, password = decode_proxy_auth_header(proxy_auth_header)

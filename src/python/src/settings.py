@@ -29,7 +29,9 @@ DB_USERNAME = os.getenv("DB_USERNAME", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_DATABASE = os.getenv("DB_DATABASE", "db_name1")
 
-SALT_KEY = os.getenv("SALT_KEY", "7244fe69f96714e4c0269492bb0e9d1e51740f77f27d03c9cd23c7e37ef05c10")
+SALT_KEY = os.getenv("SALT_KEY")
+if not SALT_KEY:
+    raise Exception("`SALT KEY` not set")
 
 STATISTIC_LOGGING_TIME_TRIGGER = getattr(
     StateLoggingTriggers, os.getenv("STATISTIC_LOGGING_TIME_TRIGGER", "EVERY_HOUR")
