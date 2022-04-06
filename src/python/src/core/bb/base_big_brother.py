@@ -2,6 +2,7 @@ import asyncio
 import signal
 from logging import getLogger
 
+import mitmproxy.proxy.layers.http._hooks  # NOT DELETE THIS IMPORT
 from mitmproxy.options import Options
 
 from core.addons.dynamic_upstream_addon import DynamicUpstreamAddon

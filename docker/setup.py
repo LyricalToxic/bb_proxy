@@ -1,5 +1,5 @@
 from plumbum import local
-
+import time
 print("`setup.py` start")
 
 with local.cwd("/home/app/src/python/src"):
@@ -10,6 +10,6 @@ with local.cwd("/home/app/pm2/"):
     pm2.popen(args=("start", "pm2.config.js"))
     print(pm2.run(args=("status",)))
 print("`setup.py` finish")
-local["python"].run()
-#  python3 /home/app/docker/setup.py
-#  curl --location --request GET 'https://ident.me' --header 'Proxy-Authorization1: Basic dGVzdDp0ZXN0MQ==' -x 127.0.0.1:8081 -k
+
+while True:
+    time.sleep(60 * 60 * 24)
