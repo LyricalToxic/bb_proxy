@@ -1,14 +1,13 @@
-import asyncio
 from logging import getLogger
 
 from mitmproxy.connection import Server
 from mitmproxy.http import HTTPFlow, Request
 from mitmproxy.net.server_spec import ServerSpec
-from mitmproxy.script import concurrent
 
 from exceptions.comrade import EmptyComradeAuthHeader, BaseMitmException
 from utils.project.http import calculate_http_obj_size
 from utils.project.proxy_authorization import decode_proxy_auth_header
+from utils.types_.constans import PROXY_AUTHORIZATION_HEADER
 from utils.types_.containers import ProxySpec
 
 
@@ -19,19 +18,27 @@ class DynamicUpstreamAddon:
         self.logger = getLogger(DynamicUpstreamAddon.__name__)
 
     # --------------------------
-    # Mitm proxy hook handlers
     def http_connect_upstream(self, flow: HTTPFlow) -> None:
-        # WARNING! proxy (ip, port) + auth must be unique
-        # No way forward information about the request
+        """
+            This handler called for HTTPS connection
+        :param flow:
+        :return:
+        """
         comrade_identifier = flow.client_conn._comrade_identifier
         proxy_spec = self.owner.get_comrade_proxy_spec(comrade_identifier)
         if proxy_spec.credential:
             flow.request.headers["Proxy-Authorization"] = proxy_spec.credential.basic_token
 
-    @concurrent
-    def request(self, flow: HTTPFlow) -> None:
-        self.logger.info("Received request %s", flow.request)
-        asyncio.run(self._set_actual_upstream(flow))
+    async def request(self, flow: HTTPFlow) -> None:
+        """
+            This handler set proxy auth if client use HTTP connection
+        """
+        if not flow.server_conn.tls:
+            self.logger.info("Received request %s", flow.request)
+            await self._set_actual_upstream(flow)
+            proxy_spec = self.owner.get_comrade_proxy_spec(flow.client_conn._comrade_identifier)
+            if proxy_spec.credential:
+                flow.request.headers["Proxy-Authorization"] = proxy_spec.credential.basic_token
 
     def response(self, flow: HTTPFlow) -> None:
         self.logger.info("Received request %s", flow.response)
@@ -41,6 +48,14 @@ class DynamicUpstreamAddon:
             self.owner.comrade_usage[comrade_identifier].inc_download_traffic(calculate_http_obj_size(flow.response))
             self.owner.comrade_usage[comrade_identifier].inc_upload_traffic(calculate_http_obj_size(flow.request))
             self.owner.comrade_usage[comrade_identifier].release_thread()
+
+    async def http_connect(self, flow):
+        """
+            Handles HTTP tunnelling that is established during HTTPS connection.
+            Use `Proxy-Authorization` header for authorization on CONNECT request.
+        """
+        self.logger.info("Received request %s", flow.request)
+        await self._set_actual_upstream(flow)
 
     # --------------------------
     async def _set_actual_upstream(self, flow: HTTPFlow) -> None:
@@ -64,7 +79,7 @@ class DynamicUpstreamAddon:
 
     async def _authenticate_comrade(self, request: Request):
         self.logger.debug("%s. Authentication procedure start", request)
-        proxy_auth_header = request.headers.get("BBC-Proxy-Authorization")
+        proxy_auth_header = request.headers.get(PROXY_AUTHORIZATION_HEADER)
         if not proxy_auth_header:
             raise EmptyComradeAuthHeader()
         username, password = decode_proxy_auth_header(proxy_auth_header)

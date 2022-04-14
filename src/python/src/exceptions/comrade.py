@@ -56,7 +56,7 @@ class TimeoutIdentificationError(BaseMitmException):
 class ComradeAuthenticationError(BaseMitmException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
-            self.message = f"Authentication comrade {username} failed."
+            message = f"Authentication comrade {username} failed."
         self.code = 464
         self.message = message
         super().__init__(message, *args, **kwargs)

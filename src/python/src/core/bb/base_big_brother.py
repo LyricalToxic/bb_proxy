@@ -4,13 +4,15 @@ from logging import getLogger
 
 import mitmproxy.proxy.layers.http._hooks  # NOT DELETE THIS IMPORT
 from mitmproxy.options import Options
+from mitmproxy.tools.console.master import ConsoleMaster
+from mitmproxy.tools.dump import DumpMaster
 
 from core.addons.dynamic_upstream_addon import DynamicUpstreamAddon
 from core.bb.storage.bb_storage import BBStorage
-from core.modified_mitmproxy.modified_dump_muster import ModifiedDumpMuster
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT
 from utils.project.default_proxy import load_proxy_stub
+from utils.project.paths import get_root_path
 from utils.types_.constans import LISTEN_HOST
 
 
@@ -60,12 +62,13 @@ class BaseBigBrother(object):
                 listen_port=LISTEN_PORT,
                 mode=proxy_spec.upstream_mode,
                 ssl_insecure=True,
-                upstream_cert=False,
+                confdir=str(get_root_path().joinpath("data", "certs"))
             )
-            self._master = ModifiedDumpMuster(dump_master_opts)
+            self._master = DumpMaster(dump_master_opts)
             self._master.addons.add(DynamicUpstreamAddon(self))
             self._master.options.update(connection_strategy="lazy")
-            self._master.run()
+            self._master.options.update( proxy_debug=True)
+            await self._master.run()
 
     def get_comrade_proxy_spec(self, identifier):
         pass
