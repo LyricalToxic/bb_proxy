@@ -135,10 +135,23 @@ class GeoSerf(ProxySpec):
                 pass
 
 
+@dataclass()
+class BrightDataDatacenter(ProxySpec):
+    __lock: RLock = RLock()
+
+    def rotate(self):
+        with self.__lock:
+            if self.rotate_strategy == RotateStrategies.FORCE_ROTATE:
+                pass
+            if self.rotate_strategy == RotateStrategies.NO_ROTATE:
+                pass
+
+
 __all__ = [
     "ProxySpec",
     "ProxyCredential",
     "ProxyLimits",
     "ProxyUsage",
-    "GeoSerf"
+    "GeoSerf",
+    "BrightDataDatacenter"
 ]

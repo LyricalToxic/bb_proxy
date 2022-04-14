@@ -1,4 +1,4 @@
-from utils.types_.containers import GeoSerf, ProxySpec
+from utils.types_.containers import GeoSerf, ProxySpec, BrightDataDatacenter
 
 
 def proxy_spec_factory(proxy_type, **kwargs):
@@ -8,5 +8,7 @@ def proxy_spec_factory(proxy_type, **kwargs):
         return GeoSerf(standard_rotate_interval=5, **kwargs)
     if proxy_type.startswith("geoserf15"):
         return GeoSerf(standard_rotate_interval=15, **kwargs)
+    if proxy_type.startswith("brightdata_datacenter"):
+        return BrightDataDatacenter(**kwargs)
     else:
         return ProxySpec(**kwargs)
