@@ -1,57 +1,64 @@
 import asyncio
-import datetime
-from concurrent.futures import ThreadPoolExecutor
+from asyncio import Task
+from functools import partial
+from typing import Optional
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import insert
-from sqlalchemy import select, and_, update, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
+from sqlalchemy.engine import Row
 
 from core.bb.communicative_big_brother import CommunicativeBigBrother
-from database.models.bb import ProxyComrade, Comrade, ProxyCredential, Statistic
+from core.bb.data_access.connection import AsyncConnection
+from core.bb.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
+from core.bb.storage.bb_storage_keeper import BBStorageKeeper
+from database.models.bb import ProxyComrade
 from exceptions.comrade import ComradeIdentificationError, ComradeAuthenticationError
 from exceptions.database import InvalidDatabaseCredentialError
 from exceptions.proxy import ProxyBandwidthLimitExceed, ProxyThreadLimitExceed
 from settings import DB_PREPARING_ENABLED
-from utils.project.database_connection import load_database_connection_url, load_default_database_connection_url
+from utils.containers import ProxySpec
 from utils.project.enums.proxy_states import ProxyStates
-from utils.project.enums.state_logging_triggers import StateLoggingTriggersBySignal, StateLoggingTriggers
-from utils.project.paths import get_root_path
+from utils.project.enums.state_logging_triggers import StateLoggingTriggersBySignal, StateLoggingTriggers, \
+    StateLoggingTriggersByTime, LogTrigger
+from utils.project.func.database_connection import load_database_connection_url, load_default_database_connection_url
+from utils.project.func.paths import get_root_path
+from utils.types import Identifier
 
 
 class BigBrother(CommunicativeBigBrother):
 
-    def __init__(self):
-        super().__init__()
-        self.async_engine = None
+    def __init__(self, storage_keeper: BBStorageKeeper, stmt_collection: BasicInteractionStmtCollection) -> None:
+        super().__init__(storage_keeper)
+        self.async_connection: AsyncConnection = None
+        self.comrade_retrieve_tasks: dict = {}
+        self.stmt_collection: BasicInteractionStmtCollection = stmt_collection
 
-    async def before_setup_mitmproxy(self):
+    async def before_setup_mitmproxy(self) -> None:
         await super().before_setup_mitmproxy()
-        self.async_engine = await self.setup_engine()
+        self.async_connection = await self.setup_async_connection()
 
-    async def setup_engine(self):
+    async def setup_async_connection(self) -> AsyncConnection:
         connection_string = await self._get_database_connection_string()
-        async_engine = create_async_engine(connection_string)
-        await asyncio.get_event_loop().run_in_executor(
-            ThreadPoolExecutor(max_workers=1), self._apply_migrations, connection_string
-        )
-        return async_engine
+        async_connection = AsyncConnection(connection_string)
+        partial_apply_migrations = partial(self._apply_migrations, connection_string)
+        await async_connection.execute_in_thread(partial_apply_migrations)
+        return async_connection
 
-    def _apply_migrations(self, connection_string):
+    def _apply_migrations(self, connection_string: str) -> None:
         try:
             alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
             alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
+            alembic_cfg.set_main_option("config_logger", "0")
             command.upgrade(alembic_cfg, "head")
         except Exception as e:
-            print(e)
+            self.logger.error(e)
 
-    async def _get_database_connection_string(self):
+    async def _get_database_connection_string(self) -> Optional[str]:
         db_connection_url_from_config = load_database_connection_url()
-        async_engine = create_async_engine(db_connection_url_from_config)
+        async_connection = AsyncConnection(db_connection_url_from_config)
         try:
-            async with async_engine.begin() as connection:
-                await connection.execute(text("SELECT 1;"))
+            await async_connection.execute(self.stmt_collection.build_init_query())
             return db_connection_url_from_config
         except Exception as e:
             self.logger.warning("Connection to database failed. %s", e)
@@ -65,167 +72,124 @@ class BigBrother(CommunicativeBigBrother):
 
     # Comrade identification procedure
     # If comrade not found in local storage, then try ro retrieve record from database and append it to local storage
-    async def authenticate_comrade(self, username, password):
+    async def authenticate_comrade(self, username: str, password: str) -> Optional[Identifier]:
         identifier = await self.identify_comrade(username)
-        comrade = self._local_storage.get_comrade(identifier)
-        if comrade and comrade[1] == password:
-            return identifier
-        else:
+        if not self._storage_keeper.is_comrade_authenticated(identifier, password):
             raise ComradeAuthenticationError(username=username)
+        else:
+            return identifier
 
-    async def identify_comrade(self, username):
+    async def identify_comrade(self, username: str) -> Optional[Identifier]:
         identifier = self._get_comrade_identifier_from_local(username)
         if not identifier:
-            identifier = await self._get_comrade_identifier_from_database(username)
-            if identifier:
-                self.schedule_logging_statistic(identifier)
+            comrade_retrieving_task = self.comrade_retrieve_tasks.get(username, None)
+            if not comrade_retrieving_task:
+                comrade_retrieving_task = asyncio.ensure_future(self._get_comrade_identifier_from_database(username))
+                comrade_retrieving_task.set_name(username)
+                self.comrade_retrieve_tasks[username] = comrade_retrieving_task
+                comrade_retrieving_task.add_done_callback(self.on_comrade_retrieved)
+            identifier = await comrade_retrieving_task
         if not identifier:
             raise ComradeIdentificationError(username=username)
         else:
             return identifier
 
-    def schedule_logging_statistic(self, identifier):
-        task = asyncio.run_coroutine_threadsafe(self.log_statistic(identifier), self._mimtproxy_event_loop)
-        self._local_storage.inject_logging_task(task, identifier)
+    def on_comrade_retrieved(self, done_task: Task) -> None:
+        results = done_task.result()
+        if results:
+            self.schedule_logging_statistic(results)
+        del self.comrade_retrieve_tasks[done_task.get_name()]
+
+    def schedule_logging_statistic(self, identifier: Identifier) -> Task:
+        self.logger.info("LOG STATISTIC SETUP FOR %s", identifier)
+        task = asyncio.run_coroutine_threadsafe(
+            self.log_statistic(identifier, StateLoggingTriggersByTime.EVERY_MINUTE),
+            self._mimtproxy_event_loop
+        )
+        self._storage_keeper.set_logging_task(task, identifier)
         return task
 
-    async def _get_comrade_identifier_from_database(self, username):
+    async def _get_comrade_identifier_from_database(self, username: str) -> Optional[Identifier]:
         comrade = await self._retrieve_comrade(username)
         if not comrade:
             return None
         else:
-            identifier = self._local_storage.append_comrade(comrade)
-            await self._update_proxy_comrade(comrade.id, {
-                ProxyComrade.status: ProxyStates.RESERVED,
-            })
-            return identifier
-
-    async def _update_proxy_comrade(self, comrade_id, values):
-        async with self.async_engine.begin() as connection:
-            update_stmt = self._build_update_proxy_comrade(comrade_id, values)
-            await connection.execute(update_stmt)
-
-    async def _retrieve_comrade(self, username):
-        async with self.async_engine.begin() as connection:
-            select_stmt = self.build_select_comrade_proxy_stmt(username)
-            cursor_result = await connection.execute(select_stmt)
-            return cursor_result.fetchone()
-
-    def build_select_comrade_proxy_stmt(self, username):
-        joined_stmt = ProxyComrade.__table__ \
-            .join(Comrade, Comrade.id == ProxyComrade.comrade_id) \
-            .join(ProxyCredential, ProxyCredential.id == ProxyComrade.proxy_credential_id)
-        select_stmt = select([
-            ProxyComrade.id,
-            ProxyComrade.comrade_id,
-            ProxyComrade.proxy_credential_id,
-            ProxyComrade.bandwidth_limit_b,
-            ProxyComrade.concurrency_threads_limit,
-            ProxyComrade.used_bandwidth_b,
-            ProxyComrade.rotate_strategy,
-            Comrade.username,
-            Comrade.password,
-            ProxyCredential.type,
-            ProxyCredential.protocol,
-            ProxyCredential.host,
-            ProxyCredential.port,
-            ProxyCredential.username.label("proxy_username"),
-            ProxyCredential.password.label("proxy_password"),
-            ProxyCredential.options,
-        ]).where(
-            and_(
-                Comrade.username == username,
-                ProxyComrade.status == ProxyStates.AVAILABLE,
+            identifier = self._storage_keeper.add_comrade(comrade)
+            await self._update_proxy_comrade(
+                comrade.id,
+                {ProxyComrade.status: ProxyStates.RESERVED}
             )
-        ).select_from(joined_stmt)
-        return select_stmt
+        return identifier
 
-    def _build_update_proxy_comrade(self, id_, values):
-        update_stmt = update(ProxyComrade).values(values).where(ProxyComrade.id == id_)
-        return update_stmt
+    async def _update_proxy_comrade(self, comrade_id: int, values: dict) -> None:
+        update_stmt = self.stmt_collection.build_update_proxy_comrade_query(comrade_id, values)
+        await self.async_connection.execute(update_stmt)
 
-    def _get_comrade_identifier_from_local(self, username):
-        return self._local_storage.indentify_comrade(username)
+    async def _retrieve_comrade(self, username: str) -> Row:
+        select_stmt = self.stmt_collection.build_select_comrade_proxy_query(username)
+        cursor_result = await self.async_connection.execute(select_stmt)
+        return cursor_result.fetchone()
 
-    # -------------------------------
-
-    # -------------------------------
-    # Get proxy spec by comrade identifier
-    def get_comrade_proxy_spec(self, identifier):
-        return self._local_storage.get_comrade_proxy_spec(identifier)
+    def _get_comrade_identifier_from_local(self, username: str) -> Identifier:
+        return self._storage_keeper.indentify_comrade(username)
 
     # -------------------------------
 
     # -------------------------------
     # Authorize comrade
-    async def authorize_comrade(self, identifier):
-        comrade_usage = self._local_storage.get_comrade_usage(identifier)
-        proxy_comrade = self._local_storage.get_comrade_proxy_spec(identifier)
-        if comrade_usage.total_traffic >= proxy_comrade.limits.bandwidth:
-            await self._update_proxy_comrade(proxy_comrade.record_id, {
+    async def authorize_comrade(self, identifier: Identifier) -> None:
+        if self._storage_keeper.is_bandwidth_exceed(identifier):
+            comrade_stats = self._storage_keeper.get_comrade_stats(identifier)
+            comrade_id = self._storage_keeper.get_comrade_proxy_spec(identifier).record_id
+            await self._update_proxy_comrade(comrade_id, {
                 ProxyComrade.status: ProxyStates.BANDWIDTH_LIMIT_UTILISED,
-                ProxyComrade.used_bandwidth_b: comrade_usage.total_traffic
+                ProxyComrade.used_bandwidth_b: text(
+                    f"{ProxyComrade.used_bandwidth_b.name} + {comrade_stats.traffic_usage.total}"
+                )
             })
             await self.log_statistic(identifier, StateLoggingTriggers.BANDWIDTH_LIMIT_USAGE_EXCEED)
-            comrade_usage._logging_task.cancel()
-            self._local_storage.remove_comrade_completely(identifier)
+            self._storage_keeper.purge_logging_task(identifier)
+            self._storage_keeper.remove_comrade(identifier)
             raise ProxyBandwidthLimitExceed()
-        if comrade_usage.threads >= proxy_comrade.limits.threads:
+        if self._storage_keeper.is_thread_limit_exceed(identifier):
             raise ProxyThreadLimitExceed()
 
     # -------------------------------
-
-    # -------------------------------
-    # Comrade usage
-    @property
-    def comrade_usage(self):
-        return self._local_storage._comrade_usage
-
-    # -------------------------------
-    async def log_statistic(self, identifier, force_trigger=None):
-        stats = self._local_storage.get_comrade_usage(identifier)
-        proxy_spec = self._local_storage.get_comrade_proxy_spec(identifier)
-        if force_trigger and force_trigger.name in StateLoggingTriggersBySignal.keys:
-            await asyncio.sleep(force_trigger.delay.seconds)
-            async with self.async_engine.begin() as connection:
-                insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, force_trigger)
-                await connection.execute(insert_stmt)
-            self._local_storage._comrade_usage[identifier].reset_traffic()
-        else:
-            trigger = stats._logging_trigger
+    async def log_statistic(self, identifier: Identifier, trigger: Optional[LogTrigger] = None) -> None:
+        if trigger and trigger.name in StateLoggingTriggers.keys:
             while True:
                 await asyncio.sleep(trigger.delay.seconds)
-                async with self.async_engine.begin() as connection:
-                    insert_stmt = self._build_statistic_insert_statement(stats, proxy_spec, trigger)
-                    await connection.execute(insert_stmt)
-                self._local_storage._comrade_usage[identifier].reset_traffic()
+                stats = self._storage_keeper.get_comrade_stats(identifier)
+                proxy_spec = self._storage_keeper.get_comrade_proxy_spec(identifier)
+                insert_stmt = self.stmt_collection.build_statistic_insert_query(stats, proxy_spec, trigger)
+                await self.async_connection.execute(insert_stmt)
+                self._storage_keeper.reset_traffic(identifier)
+                if trigger.name in StateLoggingTriggersBySignal.keys:
+                    break
+        else:
+            self.logger.error("Unknown trigger: %s", trigger)
 
-    def _build_statistic_insert_statement(self, stats, proxy_spec, trigger):
-        insert_stmt = insert(Statistic).values({
-            Statistic.proxy_comrade_limit_id: proxy_spec.record_id,
-            Statistic.from_timestamp: stats._from_timestamp,
-            Statistic.to_timestamp: datetime.datetime.now(),
-            Statistic.trigger: trigger.name,
-            Statistic.number_of_requests: stats.total_requests,
-            Statistic.upload_traffic_bytes: stats.upload_traffic,
-            Statistic.download_traffic_bytes: stats.download_traffic,
-            Statistic.total_traffic_bytes: stats.upload_traffic + stats.download_traffic,
-        }).prefix_with("OR IGNORE")
-        return insert_stmt
-
-    async def before_shutdown(self):
-        self.logger.info("BEFORE SHUTDOWN")
-        for identifier in self._local_storage._comrade_identifiers.values():
+    async def before_shutdown(self) -> None:
+        await super().before_shutdown()
+        for identifier in self._storage_keeper.get_identifiers():
             await self.log_statistic(identifier, StateLoggingTriggers.BEFORE_SHUTDOWN)
             await self._release_proxy_comrade(identifier)
-        self._master.shutdown()
 
-    async def _release_proxy_comrade(self, identifier):
-        stats = self._local_storage.get_comrade_usage(identifier)
-        proxy_spec = self._local_storage.get_comrade_proxy_spec(identifier)
-        status = ProxyStates.AVAILABLE if stats.total_traffic < proxy_spec.limits.bandwidth \
-            else ProxyStates.BANDWIDTH_LIMIT_UTILISED
+    async def _release_proxy_comrade(self, identifier: Identifier) -> None:
+        stats = self._storage_keeper.get_comrade_stats(identifier)
+        proxy_spec = self._storage_keeper.get_comrade_proxy_spec(identifier)
+        is_available = self._storage_keeper.is_comrade_proxy_exceed(identifier)
+        status = ProxyStates.AVAILABLE if is_available else ProxyStates.BANDWIDTH_LIMIT_UTILISED
         await self._update_proxy_comrade(proxy_spec.record_id, {
             ProxyComrade.status: status,
-            ProxyComrade.used_bandwidth_b: stats.total_traffic
+            ProxyComrade.used_bandwidth_b: text(
+                f"{ProxyComrade.used_bandwidth_b.name} + {stats.traffic_usage.total}"
+            )
         })
+
+    @property
+    def storage_keeper(self) -> BBStorageKeeper:
+        return self._storage_keeper
+
+    def get_comrade_proxy_spec(self, identifier: Identifier) -> ProxySpec:
+        return self._storage_keeper.get_comrade_proxy_spec(identifier)

@@ -36,11 +36,14 @@ def upgrade():
     op.create_index(op.f('ix_proxy_credentials_type'), 'proxy_credentials', ['type'], unique=False)
     op.create_index(op.f('ix_proxy_credentials_updated_at'), 'proxy_credentials', ['updated_at'], unique=False)
     op.execute(
-        "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp1 AFTER UPDATE ON proxy_credentials "
+        "CREATE TRIGGER UpdateOnCurrentTimestamp1 "
+        "AFTER UPDATE "
+        "ON proxy_credentials "
+        "FOR EACH ROW "
         "BEGIN "
-        "UPDATE proxy_credentials set updated_at=CURRENT_TIMESTAMP WHERE id=id; "
+        "update proxy_credentials set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
         "END;"
-    )
+     )
 
     # ### end Alembic commands ###
 

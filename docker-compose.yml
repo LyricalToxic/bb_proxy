@@ -10,8 +10,9 @@ services:
     volumes:
       - './src/python:/home/app/src/python'
       - './pm2:/home/app/pm2'
-      - './.env:/home/app/src/python/src/.env'
+      - '.env:/home/app/src/python/src/.env'
       - './docker:/home/app/docker'
+      - './logs:/home/app/logs'
       - '/home/app/src/python/src/.venv/'
     tty: true
     container_name: "big-brother-proxy"

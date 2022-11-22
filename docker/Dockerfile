@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y curl wget gnupg2 systemd gettext-base c
 SHELL ["/bin/bash", "-l", "-c"]
 
 RUN /usr/local/bin/python -m pip install --upgrade pip &&\
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - \
-    && source $HOME/.poetry/env \
-    &&  echo 'export PATH="$HOME/.poetry/bin:$PATH"' >> ~/.bashrc
+    curl -sSL https://install.python-poetry.org | python3 - \
+#    && source $HOME/.poetry/env \
+    &&  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 RUN pip install plumbum
 
 
@@ -22,5 +22,4 @@ RUN set -eu && \
     npm install -g pm2@5.0.0
 
 
-#CMD []
 ENTRYPOINT ["/bin/bash", "-l", "-c", "python /home/app/docker/setup.py"]

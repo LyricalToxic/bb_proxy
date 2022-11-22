@@ -1,10 +1,9 @@
-from utils.types_.containers import ProxyLimits, ProxyCredential, ProxySpec
+from utils.containers import ProxyCredential, ProxySpec
 
 
 def load_default_proxy(options):
     def _load_from_env():
-        from settings import DEFAULT_PROXY_CREDENTIALS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOST, DEFAULT_BANDWIDTH, \
-            DEFAULT_THREADS
+        from settings import DEFAULT_PROXY_CREDENTIALS, DEFAULT_PROXY_PORT, DEFAULT_PROXY_HOST
         if not (DEFAULT_PROXY_HOST and DEFAULT_PROXY_PORT):
             return None
         else:
@@ -12,10 +11,6 @@ def load_default_proxy(options):
                 host=DEFAULT_PROXY_HOST,
                 port=DEFAULT_PROXY_PORT,
                 credential=ProxyCredential(DEFAULT_PROXY_CREDENTIALS),
-                limits=ProxyLimits(
-                    bandwidth=DEFAULT_BANDWIDTH,
-                    threads=DEFAULT_THREADS
-                )
             )
 
     def _load_from_options(options):
@@ -27,10 +22,6 @@ def load_default_proxy(options):
                 port=getattr(options, "proxy_port", None),
                 protocol=getattr(options, "protocol", "https"),
                 credential=ProxyCredential(getattr(options, "proxy_credential", None)),
-                limits=ProxyLimits(
-                    bandwidth=getattr(options, "bandwidth", None),
-                    threads=getattr(options, "threads", None)
-                )
             )
 
     def _load_from_db():
@@ -46,8 +37,4 @@ def load_proxy_stub():
         port=1234,
         protocol="https",
         credential=ProxyCredential(None),
-        limits=ProxyLimits(
-            bandwidth=None,
-            threads=-1
-        )
     )
