@@ -12,7 +12,7 @@
 
 # Setup
 
-There are two ways to setup application:
+There are two ways to set up application:
 
 ## From current environmental
 
@@ -168,4 +168,3 @@ Available cli commands, which now only helps interactions with db. Further will 
 
 - all passwords stored at database are encrypted. 
 - restriction: username for comrades must be unique
-- client have not to verify ssl certifications
