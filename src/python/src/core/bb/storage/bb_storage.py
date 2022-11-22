@@ -1,115 +1,74 @@
-from threading import RLock
-
-from utils.project.password_hashing import decrypt_password
-from utils.project.proxy_spec_factory import proxy_spec_factory
-from utils.types_.containers import ProxyCredential, ProxyLimits, ProxyUsage
+from utils.containers import Comrade
+from utils.types import Identifier
 
 
 class _ComradeIdentifiers(dict):
     """
         Container for comrade credentials. Represents following format {(comrade_username, comrade_password):comrade_id}
+        Used for type hinting.
     """
 
 
 class _ProxySpecs(dict):
     """
         Container for {ProxySpec}. Represents following format {comrade_id:ProxySpec}
+        Used for type hinting.
     """
 
 
 class _ComradeUsage(dict):
     """
         Container for comrade proxy usage. Represents following format {comrade_id:ProxyUsage}
+        Used for type hinting.
+    """
+
+
+class _Storage(dict):
+    """
+        Container for storage.
+        Used for type hinting.
     """
 
 
 class BBStorage(object):
 
-    def __init__(self):
-        self._local_lock = RLock()
-        self._comrade_identifiers = _ComradeIdentifiers()
-        self._proxy_specs = _ProxySpecs()
-        self._comrade_usage = _ComradeUsage()
+    def __init__(self, **kwargs):
+        self._storage: _Storage = _Storage()
+        self._comrade_identifiers: _ComradeIdentifiers = _ComradeIdentifiers()
 
-    def indentify_comrade(self, username):
-        with self._local_lock:
-            for comrade, comrade_id in self._comrade_identifiers.items():
-                if comrade[0] == username:
-                    return comrade_id
+        self._stat_buffer = {}
 
-    def append_comrade(self, comrade):
-        with self._local_lock:
-            comrade_username, comrade_password = comrade.username, decrypt_password(comrade.password)
-            hashed_comrade = hash((comrade_username, comrade_password))
-            self._comrade_identifiers.update({(comrade_username, comrade_password): hashed_comrade})
-            self._comrade_usage.update({
-                hashed_comrade: ProxyUsage(previous_traffic=comrade.used_bandwidth_b)
-            })
+    def indentify_comrade(self, username: str) -> Identifier:
+        return next(
+            (cid for c, cid in self._comrade_identifiers.items() if c[0] == username),
+            None
+        )
 
-            proxy_username, proxy_password = comrade.proxy_username, decrypt_password(comrade.proxy_password)
-            proxy_cred = ProxyCredential(credential=(proxy_username, proxy_password))
-            proxy_limit = ProxyLimits(bandwidth=comrade.bandwidth_limit_b, threads=comrade.concurrency_threads_limit)
-            proxy_spec = proxy_spec_factory(
-                proxy_type=comrade.type,
-                host=comrade.host,
-                port=comrade.port,
-                credential=proxy_cred,
-                limits=proxy_limit,
-                protocol=comrade.protocol,
-                record_id=comrade.id,
-                rotate_strategy=comrade.rotate_strategy
-            )
-            self._proxy_specs.update({hashed_comrade: proxy_spec})
-            return hashed_comrade
+    def add(self, comrade: Comrade) -> Identifier:
+        comrade_hash = self.add_comrade_identifier(comrade.credential.username, comrade.credential.password)
+        self._storage[comrade_hash] = comrade
+        return comrade_hash
 
-    def remove_comrade_completely(self, identifier):
-        with self._local_lock:
-            self.remove_comrade_usage(identifier)
-            self.remove_comrade_proxy_spec(identifier)
-            self.remove_comrade(identifier)
+    def get(self, identifier: Identifier) -> Comrade:
+        return self._storage.get(identifier)
 
-    def get_comrade_proxy_spec(self, identifier):
-        with self._local_lock:
-            return self._proxy_specs[identifier]
+    def remove_comrade(self, identifier: Identifier) -> None:
+        try:
+            del self._storage[identifier]
+        except Exception as e:
+            pass
 
-    def remove_comrade_proxy_spec(self, identifier):
-        with self._local_lock:
-            try:
-                del self._proxy_specs[identifier]
-            except KeyError:
-                pass
+        try:
+            cid_key = next((key for key, value in self._comrade_identifiers.items() if value == identifier), None)
+            del self._comrade_identifiers[cid_key]
+        except Exception as e:
+            pass
 
-    def get_comrade(self, identifier):
-        with self._local_lock:
-            for comrade, comrade_id in self._comrade_identifiers.items():
-                if comrade_id == identifier:
-                    return comrade
+    def add_comrade_identifier(self, comrade_username: str, comrade_password: str) -> Identifier:
+        comrade_hash = f"{comrade_username}_{comrade_password}"
+        self._comrade_identifiers.update({(comrade_username, comrade_password): comrade_hash})
+        return Identifier(comrade_hash)
 
-    def remove_comrade(self, identifier):
-        with self._local_lock:
-            target_comrade = None
-            for comrade, comrade_id in self._comrade_identifiers.items():
-                if comrade_id == identifier:
-                    target_comrade = comrade
-                    break
-            if target_comrade:
-                try:
-                    del self._comrade_identifiers[comrade]
-                except KeyError:
-                    pass
-
-    def get_comrade_usage(self, identifier):
-        with self._local_lock:
-            return self._comrade_usage[identifier]
-
-    def remove_comrade_usage(self, identifier):
-        with self._local_lock:
-            try:
-                del self._comrade_usage[identifier]
-            except KeyError:
-                pass
-
-    def inject_logging_task(self, task, identifier):
-        with self._local_lock:
-            comrade_usage = self._comrade_usage[identifier]
-            comrade_usage._logging_task = task
+    @property
+    def comrade_identifiers(self) -> _ComradeIdentifiers:
+        return self._comrade_identifiers

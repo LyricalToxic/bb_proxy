@@ -53,7 +53,7 @@ There are two ways to setup application:
 
 # Usage
 
-Fill database tables:
+Fill database tables(see [cli](#cli)):
 
 1. Add user profile to comrade table. Use script encode_my_password.py to hash the password.
 2. Add proxy credentials to proxy_credentials table. Use script encode_my_password.py to hash the password.
@@ -62,7 +62,7 @@ Fill database tables:
 Send test request like:
 
 ```
-  curl -x https://127.0.0.1:8081 -U test:test1 -k -p https://ident.me --header 'BBC-Proxy-Authorization: Basic {base64}'
+  curl --proxy 127.0.0.1:8081 --proxy-user test:test1 -k -p https://ident.me 
 ```
 
 Note: `Proxy-Authorization` header must be included if proxy has authorization
@@ -144,7 +144,7 @@ Database migrations apply automatically everytime when bbc starts.
 - from_timestamp - timestamp for the start of statistics collection
 - to_timestamp - timestamp for the end of statistics collection
 - trigger - trigger, which trigger logging
-- number_of_requests - number of requests within interval
+- ~~number_of_requests - number of requests within interval~~
 - upload_traffic_bytes - amount of upload traffic in bytes within interval
 - download_traffic_bytes - amount of download traffic in bytes within interval
 - total_traffic_bytes - amount of total traffic in bytes within interval
@@ -152,12 +152,20 @@ Database migrations apply automatically everytime when bbc starts.
 
 </details>
 
+## Visualisation
+
+![image](./docs/assets/images/bb_tables_schema.png "DB relation schema")
+
+## CLI
+
+Available cli commands, which now only helps interactions with db. Further will be reworked.
+<details>
+<summary>Use `--help`  command for details</summary>
+<pre>python bbcli.py --help</pre>
+</details>
+
 # Marks
 
-- all passwords stored at database are encrypted. To encrypt your password use following command
-  ```
-    python encode_my_password.py %passwrod1% %password2$ %passwordN%
-  ```
+- all passwords stored at database are encrypted. 
 - restriction: username for comrades must be unique
 - client have not to verify ssl certifications
-- bbc credentials must be contains in BBC-Proxy-Authorization header

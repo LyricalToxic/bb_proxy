@@ -18,7 +18,7 @@ class EmptyComradeAuthHeader(BaseMitmException):
 
     def __init__(self, message=None, *args, **kwargs):
         if not message:
-            message = "`BBC-Proxy-Authorization` header is empty, please enter username and password."
+            message = "`Proxy-Authorization` header is empty, please enter username and password."
         self.code = 460
         self.message = message
         super().__init__(message, *args, **kwargs)
@@ -27,7 +27,7 @@ class EmptyComradeAuthHeader(BaseMitmException):
 class IncorrectComradeAuthHeader(BaseMitmException):
     def __init__(self, message=None, *args, **kwargs):
         if not message:
-            message = "`BBC-Proxy-Authorization` header has incorrect format." \
+            message = "`Proxy-Authorization` header has incorrect format." \
                       "Please enter username and password with following format:" \
                       "`Basic base64encode(%username%, %password%)`"
         self.code = 461
@@ -38,7 +38,7 @@ class IncorrectComradeAuthHeader(BaseMitmException):
 class ComradeIdentificationError(BaseMitmException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
-            message = f"Cannot identify comrade. No found comrade with username {username}"
+            message = f"Cannot identify comrade. Not found comrade with username {username}"
         self.code = 462
         self.message = message
         super().__init__(message, *args, **kwargs)

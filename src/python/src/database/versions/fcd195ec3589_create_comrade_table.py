@@ -32,9 +32,12 @@ def upgrade():
                     )
     op.create_index(op.f('ix_comrades_updated_at'), 'comrades', ['updated_at'], unique=False)
     op.execute(
-        "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp AFTER UPDATE ON comrades "
+        "CREATE TRIGGER UpdateOnCurrentTimestamp0 "
+        "AFTER UPDATE "
+        "ON comrades "
+        "FOR EACH ROW "
         "BEGIN "
-        "UPDATE comrades set updated_at=CURRENT_TIMESTAMP WHERE id=id; "
+        "update comrades set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
         "END;"
     )
     # ### end Alembic commands ###

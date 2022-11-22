@@ -44,9 +44,12 @@ def upgrade():
     op.create_index(op.f('ix_statistics_to_timestamp'), 'statistics', ['to_timestamp'], unique=False)
     op.create_index(op.f('ix_statistics_updated_at'), 'statistics', ['updated_at'], unique=False)
     op.execute(
-        "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp3 AFTER UPDATE ON statistics "
+        "CREATE TRIGGER UpdateOnCurrentTimestamp3 "
+        "AFTER UPDATE "
+        "ON statistics "
+        "FOR EACH ROW "
         "BEGIN "
-        "UPDATE statistics set updated_at=CURRENT_TIMESTAMP WHERE id=id; "
+        "update statistics set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
         "END;"
     )
     # ### end Alembic commands ###
