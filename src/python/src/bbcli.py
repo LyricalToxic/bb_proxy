@@ -6,7 +6,7 @@ from cmdline.commands import ghelpers, gsql
 @click.group()
 def cli():
     """
-        Guid for how to fill db tables. For this purpose use sql command:
+        Guide for how to fill db tables. For this purpose use sql command:
 
             python bbcli.py sql --help
 
