@@ -164,7 +164,19 @@ Available cli commands, which now only helps interactions with db. Further will 
 <pre>python bbcli.py --help</pre>
 </details>
 
-# Marks
+## Custom status codes
+
+If something was wrong in bb side, you will get custom http code.
+Below describes meaning of each:
+1. 449 - Unknown error. It means that unexpected error was happened, and you should check logs.
+2. 460 - `Proxy-Authorization` header is empty
+3. 461 - Cannot identify comrade. Not found comrade with username
+4. 463 - Identification comrade failed. Timeout exceed.
+5. 464 - Authentication comrade failed.
+6. 470 - Proxy usage bandwidth exceed. In the next moment proxy will be removed from local cache and marked in db as used.
+7. 471 - Proxy usage thread exceed. In this case you have to decrease number of threads, which use single comrade. If you seldom get this status code, then just retry request without any changes.
+
+# Notes
 
 - all passwords stored at database are encrypted. 
 - restriction: username for comrades must be unique
