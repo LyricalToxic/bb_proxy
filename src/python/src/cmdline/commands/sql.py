@@ -54,14 +54,16 @@ def insert_proxy_comrade(proxy_id: int, comrade_id: int, bandwidth: int, threads
 @click.option("-t", "--proxy_type", type=StringParamType(), help="Proxy type. Example: `geosurf`")
 @click.option("-p", "--protocol", type=StringParamType(), help="Proxy protocol: `https`, `http`")
 @click.option("-o", "--port", type=IntParamType(), help="Proxy port")
+@click.option("-h", "--host", type=StringParamType(), help="Proxy host")
 @click.option("-u", "--username", type=StringParamType(), help="Proxy username")
 @click.option("-w", "--password", type=StringParamType(), help="Proxy password")
 @click.option("-d", "--description", type=StringParamType(), help=f"Proxy description", default="")
-def insert_proxy(proxy_type: str, protocol: str, port: int, username: str, password: str, description: str):
+def insert_proxy(proxy_type: str, protocol: str, port: int, host: str, username: str, password: str, description: str):
     stmt = insert(ProxyCredential).values({
         ProxyCredential.type: proxy_type,
         ProxyCredential.protocol: protocol,
-        ProxyCredential.host: port,
+        ProxyCredential.host: host,
+        ProxyCredential.port: port,
         ProxyCredential.username: username,
         ProxyCredential.password: hash_password(password),
         ProxyCredential.description: description,
