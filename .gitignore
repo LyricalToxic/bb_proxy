@@ -1,0 +1,11 @@
+.idea/
+.env
+/docker_persistent_data/*
+!/docker_persistent_data/.gitkeep
+/src/python/src/data/*
+!/src/python/src/data/.gitkeep
+node_modules/
+.env
+ecosystem.json
+logs/*.log
+build/

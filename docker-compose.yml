@@ -1,0 +1,24 @@
+version: '3'
+networks:
+  general:
+    driver: bridge
+services:
+  python:
+    build:
+      context: ./docker/
+      dockerfile: Dockerfile
+    volumes:
+      - './src/python:/home/app/src/python'
+      - './pm2:/home/app/pm2'
+      - '.env:/home/app/src/python/src/.env'
+      - './docker:/home/app/docker'
+      - './logs:/home/app/logs'
+      - '/home/app/src/python/src/.venv/'
+    tty: true
+    container_name: "big-brother-proxy"
+    env_file:
+      - .env
+    ports:
+      - "${LISTEN_PORT}:${LISTEN_PORT}"
+    networks:
+      - general
