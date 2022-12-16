@@ -1,7 +1,7 @@
 from core.bb.big_brother import BigBrother
-from core.bb.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
 from core.bb.storage.bb_storage import BBStorage
 from core.bb.storage.bb_storage_keeper import BBStorageKeeper
+from database.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
 
 
 async def _run(options):

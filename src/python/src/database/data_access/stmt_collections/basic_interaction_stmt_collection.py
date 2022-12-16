@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import text, and_, select, update, insert
 from sqlalchemy.sql import Executable
 
-from database.models.bb import ProxyComrade, Comrade, ProxyCredential, Statistic
+from database.models.sqlite import ProxyComrade, Comrade, ProxyCredential, Statistic
 from utils.containers import ComradeStats, ProxySpec
 from utils.project.enums import ProxyStates
 from utils.project.enums.state_logging_triggers import LogTrigger

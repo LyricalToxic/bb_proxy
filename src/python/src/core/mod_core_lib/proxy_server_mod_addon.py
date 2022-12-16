@@ -162,11 +162,7 @@ class ProxyServerModAddon(Proxyserver):
             Handles HTTP tunnelling that is established during HTTPS connection.
             Use `Proxy-Authorization` header for authorization on CONNECT request.
         """
-        await self._set_actual_upstream(flow)
-        auth_header = flow.request.headers[PROXY_AUTHORIZATION_HEADER]
-        comrade = decode_proxy_auth_header(auth_header)
-        self._reserve_thread(flow.client_conn)
-        self.logger.info(f"It's me {comrade}! I am from HTTPS connection!")
+        await self._process_actual_upsteam(flow)
 
     async def server_disconnected(self, flow: HTTPFlow):
         """
@@ -205,13 +201,16 @@ class ProxyServerModAddon(Proxyserver):
             Handles HTTP request.
             Use `Proxy-Authorization` header for authorization comrade.
         """
-        await self._set_actual_upstream(flow)
+        await self._process_actual_upsteam(flow)
         self._inject_proxy_authorization(flow)
 
+    async def _process_actual_upsteam(self, flow):
+        await self._set_actual_upstream(flow)
         auth_header = flow.request.headers[PROXY_AUTHORIZATION_HEADER]
         comrade = decode_proxy_auth_header(auth_header)
         self._reserve_thread(flow.client_conn)
-        self.logger.info(f"It's me {comrade}! I am from HTTP connection!")
+        conn_protocol = flow.server_conn.transport_protocol.upper()
+        self.logger.info(f"It's me {comrade}! I am from {conn_protocol} connection!")
 
     async def client_connected(self, client: Client):
         self.logger.info("on client connected")
@@ -257,7 +256,9 @@ class ProxyServerModAddon(Proxyserver):
 
         proxy_spec = self._get_comrade_proxy_spec(identifier)
         proxy_spec.rotate()
+        self._set_proxy_spec(flow, proxy_spec, identifier)
 
+    def _set_proxy_spec(self, flow, proxy_spec, identifier):
         is_proxy_changed = proxy_spec.address != flow.server_conn.via[1]
         server_connection_already_opened = flow.server_conn.timestamp_start is not None
         if is_proxy_changed and server_connection_already_opened:

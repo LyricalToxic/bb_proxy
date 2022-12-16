@@ -9,10 +9,10 @@ from sqlalchemy import text
 from sqlalchemy.engine import Row
 
 from core.bb.communicative_big_brother import CommunicativeBigBrother
-from core.bb.data_access.connection import AsyncConnection
-from core.bb.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
 from core.bb.storage.bb_storage_keeper import BBStorageKeeper
-from database.models.bb import ProxyComrade
+from database.data_access.connection import AsyncConnection
+from database.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
+from database.models.sqlite import ProxyComrade
 from exceptions.comrade import ComradeIdentificationError, ComradeAuthenticationError
 from exceptions.database import InvalidDatabaseCredentialError
 from exceptions.proxy import ProxyBandwidthLimitExceed, ProxyThreadLimitExceed
