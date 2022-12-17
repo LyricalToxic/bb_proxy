@@ -2,7 +2,7 @@ from core.bb_innards.big_brother import BigBrother
 from core.bb_innards.storage.bb_storage import BBStorage
 from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
 from settings import DB_DRIVER
-from utils.project.func import get_dbca
+from utils.project.func.dbca import get_dbca
 
 
 async def _run(options):
