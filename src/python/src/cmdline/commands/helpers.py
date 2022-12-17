@@ -9,8 +9,6 @@ def helpers():
     """ Helper group command"""
 
 
-
-
 @click.command("epass")
 @click.argument("--password", type=Password())
 def encode_password(password):

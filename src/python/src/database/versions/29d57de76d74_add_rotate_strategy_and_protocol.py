@@ -21,27 +21,27 @@ def upgrade():
         batch_op.add_column(sa.Column('rotate_strategy', sa.INTEGER(), server_default=sa.text('0'), nullable=False),
                             insert_after="used_bandwidth_b")
     op.execute(
-            "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp2 "
-            "AFTER UPDATE "
-            "ON proxy_comrades "
-            "FOR EACH ROW "
-            "BEGIN "
-            "update proxy_comrades set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
-            "END;"
-        )
+        "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp2 "
+        "AFTER UPDATE "
+        "ON proxy_comrades "
+        "FOR EACH ROW "
+        "BEGIN "
+        "update proxy_comrades set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
+        "END;"
+    )
 
     with op.batch_alter_table('proxy_credentials', schema=None, recreate='always') as batch_op:
         batch_op.add_column(sa.Column('protocol', sa.VARCHAR(length=255), nullable=False),
                             insert_after="type")
     op.execute(
-            "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp1 "
-            "AFTER UPDATE "
-            "ON proxy_credentials "
-            "FOR EACH ROW "
-            "BEGIN "
-            "update proxy_credentials set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
-            "END;"
-        )
+        "CREATE TRIGGER IF NOT EXISTS UpdateOnCurrentTimestamp1 "
+        "AFTER UPDATE "
+        "ON proxy_credentials "
+        "FOR EACH ROW "
+        "BEGIN "
+        "update proxy_credentials set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
+        "END;"
+    )
 
     # ### end Alembic commands ###
 

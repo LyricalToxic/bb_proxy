@@ -43,7 +43,7 @@ def upgrade():
         "BEGIN "
         "update proxy_credentials set updated_at=CURRENT_TIMESTAMP WHERE id = NEW.id; "
         "END;"
-     )
+    )
 
     # ### end Alembic commands ###
 

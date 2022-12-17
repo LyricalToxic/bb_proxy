@@ -8,10 +8,10 @@ from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 
-from core.bb.communicative_big_brother import CommunicativeBigBrother
-from core.bb.storage.bb_storage_keeper import BBStorageKeeper
+from core.bb_innards.communicative_big_brother import CommunicativeBigBrother
+from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
 from database.data_access.connection import AsyncConnection
-from database.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
+from database.dbca import BaseDBCA
 from database.models.sqlite import ProxyComrade
 from exceptions.comrade import ComradeIdentificationError, ComradeAuthenticationError
 from exceptions.database import InvalidDatabaseCredentialError
@@ -28,11 +28,11 @@ from utils.types import Identifier
 
 class BigBrother(CommunicativeBigBrother):
 
-    def __init__(self, storage_keeper: BBStorageKeeper, stmt_collection: BasicInteractionStmtCollection) -> None:
+    def __init__(self, storage_keeper: BBStorageKeeper, dbca: BaseDBCA) -> None:
         super().__init__(storage_keeper)
-        self.async_connection: AsyncConnection = None
         self.comrade_retrieve_tasks: dict = {}
-        self.stmt_collection: BasicInteractionStmtCollection = stmt_collection
+        self.dbca: BaseDBCA = dbca
+        self.async_connection: AsyncConnection
 
     async def before_setup_mitmproxy(self) -> None:
         await super().before_setup_mitmproxy()
@@ -58,7 +58,7 @@ class BigBrother(CommunicativeBigBrother):
         db_connection_url_from_config = load_database_connection_url()
         async_connection = AsyncConnection(db_connection_url_from_config)
         try:
-            await async_connection.execute(self.stmt_collection.build_init_query())
+            await async_connection.execute(self.dbca.stmt_collection.build_init_query())
             return db_connection_url_from_config
         except Exception as e:
             self.logger.warning("Connection to database failed. %s", e)
@@ -122,11 +122,11 @@ class BigBrother(CommunicativeBigBrother):
         return identifier
 
     async def _update_proxy_comrade(self, comrade_id: int, values: dict) -> None:
-        update_stmt = self.stmt_collection.build_update_proxy_comrade_query(comrade_id, values)
+        update_stmt = self.dbca.stmt_collection.build_update_proxy_comrade_query(comrade_id, values)
         await self.async_connection.execute(update_stmt)
 
     async def _retrieve_comrade(self, username: str) -> Row:
-        select_stmt = self.stmt_collection.build_select_comrade_proxy_query(username)
+        select_stmt = self.dbca.stmt_collection.build_select_comrade_proxy_query(username)
         cursor_result = await self.async_connection.execute(select_stmt)
         return cursor_result.fetchone()
 
@@ -161,7 +161,7 @@ class BigBrother(CommunicativeBigBrother):
                 await asyncio.sleep(trigger.delay.seconds)
                 stats = self._storage_keeper.get_comrade_stats(identifier)
                 proxy_spec = self._storage_keeper.get_comrade_proxy_spec(identifier)
-                insert_stmt = self.stmt_collection.build_statistic_insert_query(stats, proxy_spec, trigger)
+                insert_stmt = self.dbca.stmt_collection.build_statistic_insert_query(stats, proxy_spec, trigger)
                 await self.async_connection.execute(insert_stmt)
                 self._storage_keeper.reset_traffic(identifier)
                 if trigger.name in StateLoggingTriggersBySignal.keys:

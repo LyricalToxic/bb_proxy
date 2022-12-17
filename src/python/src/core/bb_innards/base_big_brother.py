@@ -7,7 +7,7 @@ from typing import Union, Any
 from mitmproxy.options import Options
 from mitmproxy.tools.dump import DumpMaster
 
-from core.bb.storage.bb_storage_keeper import BBStorageKeeper
+from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
 from core.mod_core_lib.proxy_server_mod_addon import ProxyServerModAddon
 from exceptions import InvalidProxyError
 from settings import LISTEN_PORT

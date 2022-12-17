@@ -3,13 +3,14 @@ import datetime
 from sqlalchemy import text, and_, select, update, insert
 from sqlalchemy.sql import Executable
 
+from database.data_access.stmt_collections import BaseStmtCollection
 from database.models.sqlite import ProxyComrade, Comrade, ProxyCredential, Statistic
 from utils.containers import ComradeStats, ProxySpec
 from utils.project.enums import ProxyStates
 from utils.project.enums.state_logging_triggers import LogTrigger
 
 
-class BasicInteractionStmtCollection(object):
+class SqliteStmtCollection(BaseStmtCollection):
 
     def build_init_query(self):
         return text("SELECT 1;")

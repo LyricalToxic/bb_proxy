@@ -4,7 +4,7 @@ from logging import getLogger
 from mitmproxy.connection import Server, Client
 from mitmproxy.http import HTTPFlow, Request
 
-from core.bb.base_big_brother import BaseBigBrother
+from core.bb_innards.base_big_brother import BaseBigBrother
 from exceptions.comrade import EmptyComradeAuthHeader, BaseMitmException
 from utils.constans import PROXY_AUTHORIZATION_HEADER, META_COMRADE
 from utils.containers import ProxySpec, MetaComrade

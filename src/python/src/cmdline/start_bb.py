@@ -1,11 +1,12 @@
-from core.bb.big_brother import BigBrother
-from core.bb.storage.bb_storage import BBStorage
-from core.bb.storage.bb_storage_keeper import BBStorageKeeper
-from database.data_access.stmt_collections.basic_interaction_stmt_collection import BasicInteractionStmtCollection
+from core.bb_innards.big_brother import BigBrother
+from core.bb_innards.storage.bb_storage import BBStorage
+from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
+from settings import DB_DRIVER
+from utils.project.func import get_dbca
 
 
 async def _run(options):
     bb_storage = BBStorage()
-    bb_stmt_collection = BasicInteractionStmtCollection()
-    bbc = BigBrother(storage_keeper=BBStorageKeeper(bb_storage), stmt_collection=bb_stmt_collection)
+    dbca = get_dbca(DB_DRIVER)()
+    bbc = BigBrother(storage_keeper=BBStorageKeeper(bb_storage), dbca=dbca)
     await bbc.run(options)

@@ -6,7 +6,7 @@ from typing import Optional
 from mitmproxy.connection import Address
 from sqlalchemy.engine import Row
 
-from core.bb.storage.bb_storage import BBStorage
+from core.bb_innards.storage.bb_storage import BBStorage
 from utils.containers import ProxyCredential, ComradeLimits, ComradeCredential, Comrade, ComradeStats, ProxySpec
 from utils.project.func.password_hashing import decrypt_password
 from utils.project.func.proxy_spec_factory import proxy_spec_factory

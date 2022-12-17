@@ -1,10 +1,10 @@
 import click
 from click.types import StringParamType, IntParamType
+from database.models.bb import Comrade, ProxyComrade, ProxyCredential, Statistic
 from sqlalchemy import insert, select, func, and_
 from sqlalchemy.dialects import sqlite
 
 from cmdline.commands.validators import Password
-from database.models.bb import Comrade, ProxyComrade, ProxyCredential, Statistic
 from utils.constans import GiB, BYTE
 from utils.project.enums import RotateStrategies
 from utils.project.func.password_hashing import hash_password

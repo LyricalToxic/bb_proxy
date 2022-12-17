@@ -2,8 +2,8 @@ from typing import Optional
 
 from mitmproxy.options import Options
 
-from core.bb.base_big_brother import BaseBigBrother
-from core.bb.storage.bb_storage_keeper import BBStorageKeeper
+from core.bb_innards.base_big_brother import BaseBigBrother
+from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
 from core.communication.server import BBServer
 from settings import SECRET_KEY
 from utils.constans import ADDRESS
