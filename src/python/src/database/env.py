@@ -25,7 +25,8 @@ if int(config.get_main_option("config_logger", "1")):
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from database.models.sqlite import Comrade
+# from database.models.sqlite import Comrade
+from database.models.mysql import Comrade
 
 target_metadata = Comrade.metadata
 

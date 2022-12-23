@@ -31,4 +31,4 @@ class SqliteDBCA(BaseDBCA):
 
     @property
     def stmt_collection(self):
-        return SqliteStmtCollection()
+        return SqliteStmtCollection(self)

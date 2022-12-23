@@ -10,9 +10,8 @@ from sqlalchemy.engine import Row
 
 from core.bb_innards.communicative_big_brother import CommunicativeBigBrother
 from core.bb_innards.storage.bb_storage_keeper import BBStorageKeeper
-from database.data_access.connection import AsyncConnection
+from database.data_access.async_connection import AsyncConnection
 from database.dbca import BaseDBCA
-from database.models.sqlite import ProxyComrade
 from exceptions.comrade import ComradeIdentificationError, ComradeAuthenticationError
 from exceptions.database import InvalidDatabaseCredentialError
 from exceptions.proxy import ProxyBandwidthLimitExceed, ProxyThreadLimitExceed
@@ -30,13 +29,13 @@ class BigBrother(CommunicativeBigBrother):
 
     def __init__(self, storage_keeper: BBStorageKeeper, dbca: BaseDBCA) -> None:
         super().__init__(storage_keeper)
-        self.comrade_retrieve_tasks: dict = {}
-        self.dbca: BaseDBCA = dbca
-        self.async_connection: AsyncConnection
+        self._comrade_retrieve_tasks: dict = {}
+        self._dbca: BaseDBCA = dbca
+        self._async_connection: AsyncConnection
 
     async def before_setup_mitmproxy(self) -> None:
         await super().before_setup_mitmproxy()
-        self.async_connection = await self.setup_async_connection()
+        self._async_connection = await self.setup_async_connection()
 
     async def setup_async_connection(self) -> AsyncConnection:
         connection_string = await self._get_database_connection_string()
@@ -47,7 +46,7 @@ class BigBrother(CommunicativeBigBrother):
 
     def _apply_migrations(self, connection_string: str) -> None:
         try:
-            alembic_cfg = Config(get_root_path().joinpath("alembic.ini"))
+            alembic_cfg = Config(get_root_path().joinpath("alembic.ini"), ini_section=self._dbca.dbms)
             alembic_cfg.set_main_option("sqlalchemy.url", connection_string)
             alembic_cfg.set_main_option("config_logger", "0")
             command.upgrade(alembic_cfg, "head")
@@ -58,7 +57,7 @@ class BigBrother(CommunicativeBigBrother):
         db_connection_url_from_config = load_database_connection_url()
         async_connection = AsyncConnection(db_connection_url_from_config)
         try:
-            await async_connection.execute(self.dbca.stmt_collection.build_init_query())
+            await async_connection.execute(self._dbca.stmt_collection.build_init_query())
             return db_connection_url_from_config
         except Exception as e:
             self.logger.warning("Connection to database failed. %s", e)
@@ -82,11 +81,11 @@ class BigBrother(CommunicativeBigBrother):
     async def identify_comrade(self, username: str) -> Optional[Identifier]:
         identifier = self._get_comrade_identifier_from_local(username)
         if not identifier:
-            comrade_retrieving_task = self.comrade_retrieve_tasks.get(username, None)
+            comrade_retrieving_task = self._comrade_retrieve_tasks.get(username, None)
             if not comrade_retrieving_task:
                 comrade_retrieving_task = asyncio.ensure_future(self._get_comrade_identifier_from_database(username))
                 comrade_retrieving_task.set_name(username)
-                self.comrade_retrieve_tasks[username] = comrade_retrieving_task
+                self._comrade_retrieve_tasks[username] = comrade_retrieving_task
                 comrade_retrieving_task.add_done_callback(self.on_comrade_retrieved)
             identifier = await comrade_retrieving_task
         if not identifier:
@@ -98,7 +97,7 @@ class BigBrother(CommunicativeBigBrother):
         results = done_task.result()
         if results:
             self.schedule_logging_statistic(results)
-        del self.comrade_retrieve_tasks[done_task.get_name()]
+        del self._comrade_retrieve_tasks[done_task.get_name()]
 
     def schedule_logging_statistic(self, identifier: Identifier) -> Task:
         self.logger.info("LOG STATISTIC SETUP FOR %s", identifier)
@@ -117,17 +116,17 @@ class BigBrother(CommunicativeBigBrother):
             identifier = self._storage_keeper.add_comrade(comrade)
             await self._update_proxy_comrade(
                 comrade.id,
-                {ProxyComrade.status: ProxyStates.RESERVED}
+                {self._dbca.proxy_comrades.status: ProxyStates.RESERVED}
             )
         return identifier
 
     async def _update_proxy_comrade(self, comrade_id: int, values: dict) -> None:
-        update_stmt = self.dbca.stmt_collection.build_update_proxy_comrade_query(comrade_id, values)
-        await self.async_connection.execute(update_stmt)
+        update_stmt = self._dbca.stmt_collection.build_update_proxy_comrade_query(comrade_id, values)
+        await self._async_connection.execute(update_stmt)
 
     async def _retrieve_comrade(self, username: str) -> Row:
-        select_stmt = self.dbca.stmt_collection.build_select_comrade_proxy_query(username)
-        cursor_result = await self.async_connection.execute(select_stmt)
+        select_stmt = self._dbca.stmt_collection.build_select_comrade_proxy_query(username)
+        cursor_result = await self._async_connection.execute(select_stmt)
         return cursor_result.fetchone()
 
     def _get_comrade_identifier_from_local(self, username: str) -> Identifier:
@@ -142,9 +141,9 @@ class BigBrother(CommunicativeBigBrother):
             comrade_stats = self._storage_keeper.get_comrade_stats(identifier)
             comrade_id = self._storage_keeper.get_comrade_proxy_spec(identifier).record_id
             await self._update_proxy_comrade(comrade_id, {
-                ProxyComrade.status: ProxyStates.BANDWIDTH_LIMIT_UTILISED,
-                ProxyComrade.used_bandwidth_b: text(
-                    f"{ProxyComrade.used_bandwidth_b.name} + {comrade_stats.traffic_usage.total}"
+                self._dbca.proxy_comrades.status: ProxyStates.BANDWIDTH_LIMIT_UTILISED,
+                self._dbca.proxy_comrades.used_bandwidth_b: text(
+                    f"{self._dbca.proxy_comrades.used_bandwidth_b.name} + {comrade_stats.traffic_usage.total}"
                 )
             })
             await self.log_statistic(identifier, StateLoggingTriggers.BANDWIDTH_LIMIT_USAGE_EXCEED)
@@ -161,8 +160,8 @@ class BigBrother(CommunicativeBigBrother):
                 await asyncio.sleep(trigger.delay.seconds)
                 stats = self._storage_keeper.get_comrade_stats(identifier)
                 proxy_spec = self._storage_keeper.get_comrade_proxy_spec(identifier)
-                insert_stmt = self.dbca.stmt_collection.build_statistic_insert_query(stats, proxy_spec, trigger)
-                await self.async_connection.execute(insert_stmt)
+                insert_stmt = self._dbca.stmt_collection.build_statistic_insert_query(stats, proxy_spec, trigger)
+                await self._async_connection.execute(insert_stmt)
                 self._storage_keeper.reset_traffic(identifier)
                 if trigger.name in StateLoggingTriggersBySignal.keys:
                     break
@@ -181,9 +180,9 @@ class BigBrother(CommunicativeBigBrother):
         is_available = self._storage_keeper.is_comrade_proxy_exceed(identifier)
         status = ProxyStates.AVAILABLE if is_available else ProxyStates.BANDWIDTH_LIMIT_UTILISED
         await self._update_proxy_comrade(proxy_spec.record_id, {
-            ProxyComrade.status: status,
-            ProxyComrade.used_bandwidth_b: text(
-                f"{ProxyComrade.used_bandwidth_b.name} + {stats.traffic_usage.total}"
+            self._dbca.proxy_comrades.status: status,
+            self._dbca.proxy_comrades.used_bandwidth_b: text(
+                f"{self._dbca.proxy_comrades.used_bandwidth_b.name} + {stats.traffic_usage.total}"
             )
         })
 

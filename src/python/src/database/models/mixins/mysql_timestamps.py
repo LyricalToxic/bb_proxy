@@ -5,7 +5,11 @@ from sqlalchemy.dialects.mysql import TIMESTAMP
 
 class MysqlTimestampsMixin:
     created_at = Column(
-        "created_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+        "created_at",
+        TIMESTAMP,
+        nullable=False,
+        index=True,
+        server_default=text("CURRENT_TIMESTAMP"),
     )
     updated_at = Column(
         "updated_at",
