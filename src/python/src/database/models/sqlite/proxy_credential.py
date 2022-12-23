@@ -1,4 +1,5 @@
-from sqlalchemy import Column, INTEGER, text, UniqueConstraint, TIMESTAMP, VARCHAR, TEXT
+from sqlalchemy import Column, text, UniqueConstraint
+from sqlalchemy.dialects.sqlite import INTEGER, TIMESTAMP, VARCHAR, TEXT
 
 from database.models.base import Base
 
@@ -18,7 +19,7 @@ class ProxyCredential(Base):
     options = Column("options", TEXT, index=False, nullable=True)
 
     created_at = Column(
-        "created_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+        "created_at", TIMESTAMP, nullable=False, index=True, server_default=text("CURRENT_TIMESTAMP"),
     )
     updated_at = Column(
         "updated_at",
@@ -31,5 +32,5 @@ class ProxyCredential(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("host", "port", "username"),
+        UniqueConstraint(host, port, username),
     )

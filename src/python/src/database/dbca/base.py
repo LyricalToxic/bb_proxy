@@ -5,7 +5,10 @@ from database.models.base import Base
 
 
 class BaseDBCA(metaclass=ABCMeta):
-
+    @property
+    @abstractmethod
+    def dbms(self) -> str:
+        pass
     @property
     @abstractmethod
     def comrades(self) -> type(Base):

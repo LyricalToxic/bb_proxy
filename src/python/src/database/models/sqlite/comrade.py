@@ -1,4 +1,5 @@
-from sqlalchemy import Column, INTEGER, VARCHAR, TEXT, TIMESTAMP, text, UniqueConstraint
+from sqlalchemy import Column, text, UniqueConstraint
+from sqlalchemy.dialects.sqlite import INTEGER, VARCHAR, TEXT, TIMESTAMP
 
 from database.models.base import Base
 
@@ -14,7 +15,7 @@ class Comrade(Base):
     description = Column("description", TEXT, index=False, nullable=True)
 
     created_at = Column(
-        "created_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+        "created_at", TIMESTAMP, nullable=False, index=True, server_default=text("CURRENT_TIMESTAMP"),
     )
     updated_at = Column(
         "updated_at",
@@ -27,5 +28,5 @@ class Comrade(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("username"),
+        UniqueConstraint(username),
     )

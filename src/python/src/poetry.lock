@@ -25,11 +25,11 @@ typing_extensions = ">=3.7.2"
 
 [[package]]
 name = "alembic"
-version = "1.7.7"
+version = "1.9.0"
 description = "A database migration tool for SQLAlchemy."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [package.dependencies]
 Mako = "*"
@@ -555,7 +555,7 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "82164833d312daecf3e3d172bb7f7f44a912c52aefe101309e3f896146c5c25c"
+content-hash = "5616654f1685750f8eac305796d8b1a1d5a98bc14047a0f78af7a39f7630582d"
 
 [metadata.files]
 aiomysql = []

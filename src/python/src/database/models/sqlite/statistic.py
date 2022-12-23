@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Index, INTEGER, text, TIMESTAMP, VARCHAR, UniqueConstraint
+from sqlalchemy import Column, Index, text, UniqueConstraint
+from sqlalchemy.dialects.sqlite import INTEGER, TIMESTAMP, VARCHAR
 
 from database.models.base import Base
 
@@ -25,7 +26,7 @@ class Statistic(Base):
     total_traffic_bytes = Column("total_traffic_bytes", INTEGER, index=False, nullable=False, server_default=text("0"))
 
     created_at = Column(
-        "created_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+        "created_at", TIMESTAMP, nullable=False, index=True, server_default=text("CURRENT_TIMESTAMP"),
     )
     updated_at = Column(
         "updated_at",
@@ -38,6 +39,6 @@ class Statistic(Base):
     )
 
     __table_args__ = (
-        Index("from_timestamp", "to_timestamp", "trigger"),
-        UniqueConstraint("proxy_comrade_limit_id", "from_timestamp", "to_timestamp", "trigger"),
+        Index(None, from_timestamp, to_timestamp, trigger),
+        UniqueConstraint(proxy_comrade_limit_id, from_timestamp, to_timestamp, trigger),
     )

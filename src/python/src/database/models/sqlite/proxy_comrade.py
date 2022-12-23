@@ -1,4 +1,5 @@
-from sqlalchemy import Column, INTEGER, text, Index, TIMESTAMP
+from sqlalchemy import Column, text, Index
+from sqlalchemy.dialects.sqlite import INTEGER, TIMESTAMP
 
 from database.models.base import Base
 
@@ -19,7 +20,7 @@ class ProxyComrade(Base):
 
     status = Column("status", INTEGER, index=True, nullable=False, server_default=text("0"))
     created_at = Column(
-        "created_at", TIMESTAMP, nullable=False, server_default=text("CURRENT_TIMESTAMP"),
+        "created_at", TIMESTAMP, nullable=False, index=True, server_default=text("CURRENT_TIMESTAMP"),
     )
     updated_at = Column(
         "updated_at",
@@ -32,6 +33,6 @@ class ProxyComrade(Base):
     )
 
     __table_args__ = (
-        Index("proxy_credential_id", "comrade_id"),
-        Index("bandwidth_limit_b", "concurrency_threads_limit"),
+        Index(None, proxy_credential_id, comrade_id),
+        Index(None, bandwidth_limit_b, concurrency_threads_limit),
     )

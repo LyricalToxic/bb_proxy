@@ -10,6 +10,10 @@ from database.models.sqlite import (
 
 class SqliteDBCA(BaseDBCA):
     @property
+    def dbms(self) -> str:
+        return "sqlite"
+
+    @property
     def comrades(self):
         return Comrade
 
