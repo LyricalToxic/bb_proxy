@@ -65,5 +65,5 @@ class BaseStmtCollection(metaclass=ABCMeta):
             self._dbca.statistics.upload_traffic_bytes: stats.traffic_usage.last_interval_upload,
             self._dbca.statistics.download_traffic_bytes: stats.traffic_usage.last_interval_download,
             self._dbca.statistics.total_traffic_bytes: stats.traffic_usage.interval_total,
-        }).prefix_with("OR IGNORE")
+        }).prefix_with("IGNORE")
         return insert_stmt
