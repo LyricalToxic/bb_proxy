@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.11
 
 
 RUN apt-get update && apt-get install -y curl wget gnupg2 systemd gettext-base cron
