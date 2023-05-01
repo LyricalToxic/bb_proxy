@@ -17,44 +17,50 @@ from utils.project.func.paths import get_root_path
 
 
 class BaseBigBrother(object):
+    _master: DumpMaster
+    _logger: Logger
+    _storage_keeper: BBStorageKeeper
+    _mimtproxy_event_loop: asyncio.AbstractEventLoop
 
     def __init__(self, storage_keeper: BBStorageKeeper) -> None:
         super().__init__()
-        self.logger: Logger = getLogger(BaseBigBrother.__name__)
-        self._storage_keeper: BBStorageKeeper = storage_keeper
-        self._mimtproxy_event_loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-        self._master: DumpMaster
+        self._logger = getLogger(BaseBigBrother.__name__)
+        self._storage_keeper = storage_keeper
+        self._mimtproxy_event_loop = asyncio.get_event_loop()
 
-    async def run(self, options: Options) -> None:
-        self.connect_signals()
-        await self.before_setup_mitmproxy()
-        await self.setup_mitmproxy(options)
+    async def run(self) -> None:
+        self._connect_signals()
+        await self._before_setup()
+        await self._setup_mitmproxy()
+        await self._after_setup()
 
-    def connect_signals(self) -> None:
+    def _connect_signals(self) -> None:
         try:
-            signal.signal(signal.SIGINT, self.shutdown)
-            signal.signal(signal.SIGTERM, self.shutdown)
-            signal.signal(signal.SIGKILL, self.shutdown)
-        except Exception as e:
-            pass
+            signal.signal(signal.SIGINT, self._graceful_shutdown)
+            signal.signal(signal.SIGTERM, self._graceful_shutdown)
+            signal.signal(signal.SIGKILL, self._graceful_shutdown)
+        except AttributeError as e:
+            self._logger.debug(e)
 
-    async def before_setup_mitmproxy(self) -> None:
-        self.logger.info("BEFORE SETUP MITMPROXY")
+    async def _before_setup(self) -> None:
+        self._logger.info("BEFORE SETUP MITMPROXY")
 
-    def shutdown(self, signal: Union[int, signal.Signals], frame: FrameType) -> None:
-        asyncio.run_coroutine_threadsafe(self.before_shutdown(), self._mimtproxy_event_loop).add_done_callback(
+    async def _after_setup(self) -> None:
+        self._logger.info("AFTER SETUP MITMPROXY")
+
+    def _graceful_shutdown(self, signal: Union[int, signal.Signals], frame: FrameType) -> None:
+        asyncio.run_coroutine_threadsafe(self._before_shutdown(), self._mimtproxy_event_loop).add_done_callback(
             self._shutdown
         )
 
-    async def before_shutdown(self) -> None:
-        self.logger.info("BEFORE SHUTDOWN")
-        await asyncio.sleep(0)
+    async def _before_shutdown(self) -> None:
+        self._logger.info("BEFORE SHUTDOWN MITMPROXY")
 
     def _shutdown(self, _: Any) -> None:
         self._master.shutdown()
         self._mimtproxy_event_loop.stop()
 
-    async def setup_mitmproxy(self, options: Options) -> None:
+    async def _setup_mitmproxy(self) -> None:
         proxy_spec = load_proxy_stub()
 
         if not proxy_spec:

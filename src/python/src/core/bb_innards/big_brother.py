@@ -33,8 +33,8 @@ class BigBrother(CommunicativeBigBrother):
         self._dbca: BaseDBCA = dbca
         self._async_connection: AsyncConnection
 
-    async def before_setup_mitmproxy(self) -> None:
-        await super().before_setup_mitmproxy()
+    async def _before_setup(self) -> None:
+        await super()._before_setup()
         self._async_connection = await self.setup_async_connection()
 
     async def setup_async_connection(self) -> AsyncConnection:
@@ -51,7 +51,7 @@ class BigBrother(CommunicativeBigBrother):
             alembic_cfg.set_main_option("config_logger", "0")
             command.upgrade(alembic_cfg, "head")
         except Exception as e:
-            self.logger.error(e)
+            self._logger.error(e)
 
     async def _get_database_connection_string(self) -> Optional[str]:
         db_connection_url_from_config = load_database_connection_url()
@@ -60,9 +60,9 @@ class BigBrother(CommunicativeBigBrother):
             await async_connection.execute(self._dbca.stmt_collection.build_init_query())
             return db_connection_url_from_config
         except Exception as e:
-            self.logger.warning("Connection to database failed. %s", e)
+            self._logger.warning("Connection to database failed. %s", e)
             if DB_PREPARING_ENABLED:
-                self.logger.warning("Default local sqlite database will use.")
+                self._logger.warning("Default local sqlite database will use.")
                 return load_default_database_connection_url()
             else:
                 raise InvalidDatabaseCredentialError()
@@ -71,12 +71,11 @@ class BigBrother(CommunicativeBigBrother):
 
     # Comrade identification procedure
     # If comrade not found in local storage, then try ro retrieve record from database and append it to local storage
-    async def authenticate_comrade(self, username: str, password: str) -> Optional[Identifier]:
+    async def authenticate_comrade(self, username: str, password: str) -> None:
         identifier = await self.identify_comrade(username)
         if not self._storage_keeper.is_comrade_authenticated(identifier, password):
             raise ComradeAuthenticationError(username=username)
-        else:
-            return identifier
+        return identifier
 
     async def identify_comrade(self, username: str) -> Optional[Identifier]:
         identifier = self._get_comrade_identifier_from_local(username)
@@ -100,7 +99,7 @@ class BigBrother(CommunicativeBigBrother):
         del self._comrade_retrieve_tasks[done_task.get_name()]
 
     def schedule_logging_statistic(self, identifier: Identifier) -> Task:
-        self.logger.info("LOG STATISTIC SETUP FOR %s", identifier)
+        self._logger.info("LOG STATISTIC SETUP FOR %s", identifier)
         task = asyncio.run_coroutine_threadsafe(
             self.log_statistic(identifier, StateLoggingTriggersByTime.EVERY_MINUTE),
             self._mimtproxy_event_loop
@@ -166,10 +165,10 @@ class BigBrother(CommunicativeBigBrother):
                 if trigger.name in StateLoggingTriggersBySignal.keys:
                     break
         else:
-            self.logger.error("Unknown trigger: %s", trigger)
+            self._logger.error("Unknown trigger: %s", trigger)
 
-    async def before_shutdown(self) -> None:
-        await super().before_shutdown()
+    async def _before_shutdown(self) -> None:
+        await super()._before_shutdown()
         for identifier in self._storage_keeper.get_identifiers():
             await self.log_statistic(identifier, StateLoggingTriggers.BEFORE_SHUTDOWN)
             await self._release_proxy_comrade(identifier)

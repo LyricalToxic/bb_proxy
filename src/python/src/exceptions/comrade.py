@@ -1,30 +1,38 @@
 from mitmproxy.http import Response
+from mitmproxy.net.http import status_codes
 
 
-class BaseMitmException(Exception):
+class BaseBBException(Exception):
     code: int = 449
     message: str = "Something went wrong on mitmproxy side."
+    headers: dict = {}
 
     def reply_response(self):
         body = self.message
         return Response.make(
             status_code=self.code,
             content=body,
-            headers={"Content-Type": "text/html"}
+            headers={"Content-Type": "text/html", **self.headers}
         )
 
 
-class EmptyComradeAuthHeader(BaseMitmException):
+class EmptyComradeAuthHeader(BaseBBException):
 
     def __init__(self, message=None, *args, **kwargs):
         if not message:
             message = "`Proxy-Authorization` header is empty, please enter username and password."
-        self.code = 460
-        self.message = message
+        self.code = status_codes.PROXY_AUTH_REQUIRED
+        self.message = (
+            f"<html>"
+            f"<head><title>{self.code} {message}</title></head>"
+            f"<body><h1>{self.code} {message}</h1></body>"
+            f"</html>"
+        )
+        self.headers = {"Proxy-Authenticate": 'Basic realm="bb-proxy"'}
         super().__init__(message, *args, **kwargs)
 
 
-class IncorrectComradeAuthHeader(BaseMitmException):
+class IncorrectComradeAuthHeader(BaseBBException):
     def __init__(self, message=None, *args, **kwargs):
         if not message:
             message = "`Proxy-Authorization` header has incorrect format." \
@@ -35,7 +43,7 @@ class IncorrectComradeAuthHeader(BaseMitmException):
         super().__init__(message, *args, **kwargs)
 
 
-class ComradeIdentificationError(BaseMitmException):
+class ComradeIdentificationError(BaseBBException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
             message = f"Cannot identify comrade. Not found comrade with username {username}"
@@ -44,7 +52,7 @@ class ComradeIdentificationError(BaseMitmException):
         super().__init__(message, *args, **kwargs)
 
 
-class TimeoutIdentificationError(BaseMitmException):
+class TimeoutIdentificationError(BaseBBException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
             message = f"Identification comrade {username} failed. Timeout exceed."
@@ -53,7 +61,7 @@ class TimeoutIdentificationError(BaseMitmException):
         super().__init__(message, *args, **kwargs)
 
 
-class ComradeAuthenticationError(BaseMitmException):
+class ComradeAuthenticationError(BaseBBException):
     def __init__(self, message=None, username=None, *args, **kwargs):
         if not message:
             message = f"Authentication comrade {username} failed."

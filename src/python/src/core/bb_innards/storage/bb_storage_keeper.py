@@ -28,11 +28,11 @@ class BBStorageKeeper(object):
             is_usage_exceed = comrade.limits.traffic_bandwidth_b <= comrade.stats.traffic_usage.total
             return is_usage_exceed
 
-    def release_peer_thread(self, identifier: Identifier, client_address: Address):
+    def release_peer_thread(self, identifier: Identifier, client_address: Address) -> None:
         comrade = self.__storage.get(identifier)
         comrade.stats.thread_peers_reserved.remove(str(client_address))
 
-    def reserve_peer_thread(self, identifier: Identifier, client_address: Address):
+    def reserve_peer_thread(self, identifier: Identifier, client_address: Address) -> None:
         comrade = self.__storage.get(identifier)
         comrade.stats.thread_peers_reserved.add(str(client_address))
 
@@ -142,3 +142,6 @@ class BBStorageKeeper(object):
             return is_exceed
         else:
             return True
+
+    def get_comrade_identifier(self, comrade: Comrade) -> Identifier:
+        pass

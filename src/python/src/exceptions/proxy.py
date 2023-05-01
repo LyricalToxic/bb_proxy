@@ -1,7 +1,7 @@
-from exceptions.comrade import BaseMitmException
+from exceptions.comrade import BaseBBException
 
 
-class ProxyBandwidthLimitExceed(BaseMitmException):
+class ProxyBandwidthLimitExceed(BaseBBException):
     def __init__(self, message=None, *args, **kwargs):
         if not message:
             message = f"Proxy usage bandwidth exceed."
@@ -10,7 +10,7 @@ class ProxyBandwidthLimitExceed(BaseMitmException):
         super().__init__(message, *args, **kwargs)
 
 
-class ProxyThreadLimitExceed(BaseMitmException):
+class ProxyThreadLimitExceed(BaseBBException):
     def __init__(self, message=None, *args, **kwargs):
         if not message:
             message = f"Proxy usage thread exceed."

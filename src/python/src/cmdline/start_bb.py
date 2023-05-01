@@ -5,8 +5,8 @@ from settings import DB_DRIVER
 from utils.project.func.dbca import get_dbca
 
 
-async def _run(options):
+async def _run():
     bb_storage = BBStorage()
     dbca = get_dbca(DB_DRIVER)
     bbc = BigBrother(storage_keeper=BBStorageKeeper(bb_storage), dbca=dbca)
-    await bbc.run(options)
+    await bbc.run()

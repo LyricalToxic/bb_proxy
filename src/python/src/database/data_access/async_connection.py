@@ -3,6 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Any
 
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncResult
 from sqlalchemy.sql import Executable
 
@@ -23,7 +24,7 @@ class AsyncConnection(object):
     def on_engine_setup(self, engine: AsyncEngine) -> None:
         logging.info("On engine setup")
 
-    async def execute(self, stmt: Executable) -> AsyncResult:
+    async def execute(self, stmt: Executable) -> CursorResult:
         async with self._async_engine.begin() as connection:
             return await connection.execute(stmt)
 

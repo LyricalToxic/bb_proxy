@@ -1,4 +1,4 @@
-from cmdline._bbc_server import main
+from cmdline.bbc_server import run_server
 
 if __name__ == '__main__':
-    main()
+    run_server()

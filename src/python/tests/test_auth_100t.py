@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from unittest import TestCase
 
-from tests.helpers.send_request import send_httpbin_request, send_httpsbin_request
+from src.python.tests.utils.send_request import send_httpbin_request, send_httpsbin_request
 
 
 class TestAuth100T(TestCase):

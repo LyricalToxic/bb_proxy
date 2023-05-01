@@ -15,14 +15,14 @@ class CommunicativeBigBrother(BaseBigBrother):
         super().__init__(storage_keeper)
         self._bbserver: Optional[BBServer] = None
 
-    async def run(self, options: Options) -> None:
-        await super().run(options)
+    async def run(self) -> None:
+        await super().run()
 
     def setup_bbserver(self) -> None:
-        self.logger.info("Listen bbserver %s", ADDRESS)
+        self._logger.info("Listen bbserver %s", ADDRESS)
         self._bbserver = BBServer(ADDRESS, SECRET_KEY)
         self._bbserver.start()
         self._bbserver.read_message(self._on_input_received)
 
     def _on_input_received(self, message: str) -> None:
-        self.logger.info(message)
+        self._logger.info(message)

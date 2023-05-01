@@ -1,6 +1,6 @@
 import click
 from click.types import StringParamType, IntParamType
-from database.models.bb import Comrade, ProxyComrade, ProxyCredential, Statistic
+from database.models.mysql import Comrade, ProxyComrade, ProxyCredential, Statistic
 from sqlalchemy import insert, select, func, and_
 from sqlalchemy.dialects import sqlite
 
@@ -81,9 +81,9 @@ def insert_proxy(proxy_type: str, protocol: str, port: int, host: str, username:
               default="2022-02-01")
 def select_statistic(proxy_comrade_id: int, start_date: str, finish_date: str):
     stmt = select([
-        (func.sum(Statistic.upload_traffic_bytes) * 1.0 / GiB / BYTE).label("upload_traffic_gb"),
-        (func.sum(Statistic.download_traffic_bytes) * 1.0 / GiB / BYTE).label("download_traffic_gb"),
-        (func.sum(Statistic.total_traffic_bytes) * 1.0 / GiB / BYTE).label("total_traffic_gb"),
+        (func.sum(Statistic.upload_traffic_bytes) * 1.0 / (GiB / BYTE)).label("upload_traffic_gb"),
+        (func.sum(Statistic.download_traffic_bytes) * 1.0 / (GiB / BYTE)).label("download_traffic_gb"),
+        (func.sum(Statistic.total_traffic_bytes) * 1.0 / (GiB / BYTE)).label("total_traffic_gb"),
     ]).where(
         Statistic.proxy_comrade_limit_id == proxy_comrade_id,
         and_(
