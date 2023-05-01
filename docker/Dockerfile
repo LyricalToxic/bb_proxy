@@ -19,7 +19,8 @@ RUN set -eu && \
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" && \
     nvm install 13.6.0 && \
-    npm install -g pm2@5.0.0
+    npm install -g pm2@5.0.0 && \
+    pm2 install pm2-logrotate
 
 
 ENTRYPOINT ["/bin/bash", "-l", "-c", "python /home/app/docker/setup.py"]

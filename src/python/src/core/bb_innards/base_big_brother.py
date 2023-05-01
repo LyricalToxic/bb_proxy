@@ -39,7 +39,7 @@ class BaseBigBrother(object):
             signal.signal(signal.SIGINT, self._graceful_shutdown)
             signal.signal(signal.SIGTERM, self._graceful_shutdown)
             signal.signal(signal.SIGKILL, self._graceful_shutdown)
-        except AttributeError as e:
+        except (AttributeError, OSError) as e:
             self._logger.debug(e)
 
     async def _before_setup(self) -> None:

@@ -5,7 +5,7 @@ from settings import DB_DRIVER
 from utils.project.func.dbca import get_dbca
 
 
-async def _run():
+async def _run(**kwargs):
     bb_storage = BBStorage()
     dbca = get_dbca(DB_DRIVER)
     bbc = BigBrother(storage_keeper=BBStorageKeeper(bb_storage), dbca=dbca)
