@@ -10,7 +10,7 @@ def helpers():
 
 
 @click.command("epass")
-@click.argument("--password", type=Password())
+@click.option("--password", type=Password())
 def encode_password(password):
     hashed_password = hash_password(password)
     message = f"Password ({password}) converted to:\n{hashed_password}\n*You can save this hash to table."

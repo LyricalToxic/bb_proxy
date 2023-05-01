@@ -1,7 +1,7 @@
 FROM python:3.11
 
 
-RUN apt-get update && apt-get install -y curl wget gnupg2 systemd gettext-base cron
+RUN apt-get update && apt-get install -y curl wget gnupg2 systemd gettext-base cron vim
 
 SHELL ["/bin/bash", "-l", "-c"]
 
